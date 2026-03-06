@@ -5,6 +5,7 @@ export const projects = [
     description: "A backend system replicating core features of a video platform including authentication, subscriptions, comments, and media workflows.",
     stack: ["Node.js", "Express", "MongoDB", "JWT"],
     githubUrl: "#",
+    imageUrl: "/project-playtube.png"
   },
   {
     id: 2,
@@ -12,6 +13,7 @@ export const projects = [
     description: "A cinema booking platform that allows users to browse movies, book tickets, and manage show schedules with a modern full-stack architecture.",
     stack: ["Node.js", "Express", "MongoDB", "React", "Tailwind"],
     githubUrl: "#",
+    imageUrl: "/project-priyadarshini.png"
   },
   {
     id: 3,
@@ -19,5 +21,6 @@ export const projects = [
     description: "A subscription reminder system that automates notifications and workflows for managing recurring services and payments.",
     stack: ["Node.js", "Workflows", "Email automation"],
     githubUrl: "#",
+    imageUrl: "/project-subee.png"
   }
 ];

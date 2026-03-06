@@ -1,64 +1,58 @@
 import { useState, useEffect } from "react";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { Card } from "@/components/ui/Card";
+import { Github } from "lucide-react";
 
 export function GithubSection() {
-  const [heatmap, setHeatmap] = useState<number[]>([]);
-  const [mounted, setMounted] = useState(false);
+  const [heatmapData, setHeatmapData] = useState<number[]>([]);
 
   useEffect(() => {
-    // Generate an array of random opacities to simulate a heatmap
-    const generateMap = () => {
-      return Array.from({ length: 140 }).map(() => {
-        // 70% chance of being empty/low, 30% chance of random high opacity
-        return Math.random() > 0.7 ? Math.random() * 0.8 + 0.2 : 0.05;
-      });
-    };
-    
-    setHeatmap(generateMap());
-    setMounted(true);
+    // Generate data on the client side only
+    const data = Array.from({ length: 154 }).map(() => Math.random());
+    setHeatmapData(data);
   }, []);
 
   return (
-    <section id="github" className="py-20 min-h-screen flex items-center w-full">
-      <div className="w-full">
-        <SectionTitle>GitHub Contributions</SectionTitle>
+    <div className="w-full">
+      <SectionTitle>Code Activity</SectionTitle>
+      
+      <Card className="flex flex-col items-center justify-center p-12 bg-card/30 border-dashed border-2">
+        <Github className="w-12 h-12 text-muted mb-6 opacity-50" />
         
-        <div className="w-full bg-card/40 border border-border/60 hover:border-accent/30 transition-colors duration-500 rounded-2xl p-6 md:p-10 relative overflow-hidden group">
-          
-          <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80 z-10 pointer-events-none" />
-          
-          <div className="grid grid-cols-20 sm:grid-cols-[repeat(28,minmax(0,1fr))] gap-1 md:gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity duration-700 blur-[0.5px] group-hover:blur-none">
-            {mounted ? heatmap.map((opacity, i) => (
-              <div 
-                key={i} 
-                className="aspect-square rounded-[2px]"
-                style={{
-                  backgroundColor: `rgba(99, 102, 241, ${opacity})`,
-                  border: `1px solid rgba(99, 102, 241, ${opacity > 0.1 ? opacity + 0.2 : 0.1})`
-                }}
-              />
-            )) : Array.from({ length: 140 }).map((_, i) => (
-              <div 
-                key={i} 
-                className="aspect-square rounded-[2px]"
-                style={{
-                  backgroundColor: `rgba(99, 102, 241, 0.05)`,
-                  border: `1px solid rgba(99, 102, 241, 0.1)`
-                }}
-              />
-            ))}
-          </div>
-          
-          <div className="absolute inset-0 z-20 flex items-center justify-center">
-            <div className="bg-background/80 backdrop-blur-md px-6 py-3 rounded-xl border border-border shadow-2xl">
-              <p className="text-foreground font-medium flex items-center gap-2">
-                GitHub contribution graph coming soon.
-              </p>
-            </div>
-          </div>
-
+        {/* Simulated Heatmap */}
+        <div className="flex gap-1 mb-6 overflow-hidden max-w-full opacity-60">
+          {heatmapData.length > 0 ? (
+            Array.from({ length: 22 }).map((_, colIndex) => (
+              <div key={colIndex} className="flex flex-col gap-1">
+                {Array.from({ length: 7 }).map((_, rowIndex) => {
+                  const dataIndex = colIndex * 7 + rowIndex;
+                  const opacity = heatmapData[dataIndex];
+                  return (
+                    <div 
+                      key={rowIndex}
+                      className="w-3 h-3 rounded-sm bg-accent transition-opacity duration-300"
+                      style={{ opacity: opacity < 0.2 ? 0.1 : opacity }}
+                    />
+                  );
+                })}
+              </div>
+            ))
+          ) : (
+            // Fallback empty grid for initial server render to match client structure
+            Array.from({ length: 22 }).map((_, colIndex) => (
+              <div key={colIndex} className="flex flex-col gap-1">
+                {Array.from({ length: 7 }).map((_, rowIndex) => (
+                  <div key={rowIndex} className="w-3 h-3 rounded-sm bg-accent opacity-10" />
+                ))}
+              </div>
+            ))
+          )}
         </div>
-      </div>
-    </section>
+
+        <p className="text-muted font-medium text-center">
+          GitHub contribution graph integration coming soon.
+        </p>
+      </Card>
+    </div>
   );
 }

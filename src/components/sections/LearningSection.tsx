@@ -1,33 +1,28 @@
 import { SectionTitle } from "@/components/ui/SectionTitle";
-import { Check } from "lucide-react";
-
-const learningTopics = [
-  "DevOps fundamentals",
-  "Linux systems",
-  "AWS infrastructure",
-  "Backend scalability",
-  "Automation workflows",
-  "System design",
-  "Generative AI",
-];
+import { Card } from "@/components/ui/Card";
+import { BookOpen } from "lucide-react";
 
 export function LearningSection() {
   return (
-    <section id="learning" className="py-20 min-h-screen flex items-center w-full">
-      <div className="w-full">
-        <SectionTitle>Currently Exploring</SectionTitle>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-          {learningTopics.map((topic) => (
-            <div key={topic} className="flex items-center gap-4 bg-card/30 p-4 rounded-xl border border-border/50 hover:border-accent/40 hover:bg-card/60 transition-all hover:-translate-y-1">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center">
-                <Check className="w-4 h-4 text-accent" />
-              </div>
-              <span className="text-foreground text-lg font-medium">{topic}</span>
-            </div>
-          ))}
+    <div className="w-full">
+      <SectionTitle>Currently Learning</SectionTitle>
+      
+      <Card className="bg-gradient-to-br from-card to-background border-border/60 backdrop-blur-sm">
+        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start p-6">
+          <div className="p-4 bg-accent/10 rounded-2xl text-accent">
+            <BookOpen className="w-8 h-8" />
+          </div>
+          
+          <div className="flex-1 space-y-4 text-center md:text-left">
+            <h3 className="text-2xl font-semibold text-foreground">
+              Deepening knowledge in Cloud Architecture & Go
+            </h3>
+            <p className="text-lg text-muted leading-relaxed max-w-2xl">
+              Exploring advanced patterns in backend services, microservices architecture, and utilizing container orchestration to build more resilient systems.
+            </p>
+          </div>
         </div>
-      </div>
-    </section>
+      </Card>
+    </div>
   );
 }

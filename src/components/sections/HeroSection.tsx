@@ -4,27 +4,29 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export function HeroSection() {
   return (
-    <section className="relative w-full py-20 min-h-screen flex items-center">
-      {/* Absolute toggle button in top-right */}
-      <div className="absolute top-8 right-0 md:top-12 md:right-8 z-10">
+    <div className="relative w-full">
+      <div className="absolute top-0 right-0 z-10 hidden md:block">
         <ThemeToggle />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-24 items-center w-full">
-        <div className="flex flex-col items-start order-2 lg:order-1">
-          <p className="text-accent font-medium mb-4 tracking-wide uppercase text-sm">
-            Ashmit Patra
-          </p>
+        <div className="flex flex-col items-start gap-8 order-2 lg:order-1">
+          <div className="flex flex-col gap-6">
+            <div className="text-accent font-medium tracking-wide uppercase text-sm flex items-center gap-4">
+              Ashmit Patra
+              <span className="md:hidden"><ThemeToggle /></span>
+            </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-semibold tracking-tight text-foreground mb-6 leading-[1.1]">
-            I started by asking how websites work.
-          </h1>
-          
-          <h2 className="text-2xl md:text-3xl text-foreground font-medium mb-6">
-            Now I build the systems behind them.
-          </h2>
+            <h1 className="text-5xl md:text-6xl xl:text-7xl font-semibold tracking-tight text-foreground leading-[1.1]">
+              I started by asking how websites work.
+            </h1>
+            
+            <h2 className="text-xl md:text-2xl text-foreground font-medium">
+              Now I build the systems behind them.
+            </h2>
+          </div>
 
-          <p className="text-lg md:text-xl text-muted mb-12 max-w-xl leading-relaxed">
+          <p className="text-lg md:text-xl text-muted max-w-xl leading-relaxed">
             Building backend systems, APIs, and exploring DevOps & cloud infrastructure.
           </p>
 
@@ -59,6 +61,6 @@ export function HeroSection() {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

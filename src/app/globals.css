@@ -30,33 +30,43 @@
   }
 
   * {
+    @apply transition-all duration-300 ease-out;
     border-color: var(--border);
   }
   body {
     background-color: var(--background);
     color: var(--foreground);
-    @apply antialiased min-h-screen selection:bg-accent selection:text-white transition-colors duration-300;
+    @apply antialiased min-h-screen selection:bg-accent selection:text-white;
   }
 }
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+}
+
+.snap-container {
+  height: 100vh;
+  overflow-y: scroll;
   scroll-snap-type: y mandatory;
 }
 
-section {
+.snap-section {
   scroll-snap-align: start;
   min-height: 100vh;
   display: flex;
   align-items: center;
+  position: relative;
   width: 100%;
 }
 
 @media (max-width: 768px) {
-  html {
-    scroll-snap-type: none; /* Disable snappy scrolling on mobile for better usability */
+  .snap-container {
+    scroll-snap-type: none;
+    height: auto;
+    overflow-y: auto;
   }
-  section {
+  .snap-section {
     min-height: auto;
     padding-top: 4rem;
     padding-bottom: 4rem;

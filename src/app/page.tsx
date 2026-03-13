@@ -20,62 +20,63 @@ export default function Home() {
     <div className="w-full relative">
       <BackgroundGrid />
       <CursorGlow />
-      <main className="snap-container pb-24 md:pb-0">
-        <section id="hero" className="snap-section">
+
+      <main className="flex flex-col">
+        <section id="hero" className="pt-32 pb-24">
           <Container>
             <HeroSection />
           </Container>
         </section>
-        
-        <section id="about" className="snap-section">
+
+        <section id="about" className="py-24 md:py-32">
           <Container>
             <AboutSection />
           </Container>
         </section>
-        
-        <section id="projects" className="snap-section">
+
+        <section id="projects" className="py-24 md:py-32">
           <Container>
             <ProjectsSection />
           </Container>
         </section>
-        
-        <section id="journey" className="snap-section">
+
+        <section id="journey" className="py-24 md:py-32">
           <Container>
             <JourneySection />
           </Container>
         </section>
 
-        <section id="education" className="snap-section">
+        <section id="education" className="py-24 md:py-32">
           <Container>
             <EducationSection />
           </Container>
         </section>
-        
-        <section id="stack" className="snap-section">
+
+        <section id="stack" className="py-24 md:py-32">
           <Container>
             <TechStackSection />
           </Container>
         </section>
-        
-        <section id="github" className="snap-section">
+
+        <section id="github" className="py-24 md:py-32">
           <Container>
             <GithubSection />
           </Container>
         </section>
 
-        <section id="learning" className="snap-section">
+        <section id="learning" className="py-24 md:py-32">
           <Container>
             <LearningSection />
           </Container>
         </section>
-        
-        <section id="contact" className="snap-section">
+
+        <section id="contact" className="py-24 md:py-32 pb-32">
           <Container>
             <ContactSection />
           </Container>
         </section>
       </main>
-      
+
       <ScrollProgress />
       <FloatingDock />
     </div>

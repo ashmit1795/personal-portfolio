@@ -6,9 +6,7 @@ export function ScrollProgress() {
   const [activeHash, setActiveHash] = useState<string>("");
 
   useEffect(() => {
-    const sections = Array.from(document.querySelectorAll("section[id]")).filter(
-      (el) => el.classList.contains("snap-section")
-    );
+    const sections = Array.from(document.querySelectorAll("section[id]"));
 
     if (sections.length === 0) return;
 
@@ -20,7 +18,7 @@ export function ScrollProgress() {
           }
         });
       },
-      { threshold: 0.5 }
+      { threshold: 0.3 }
     );
 
     sections.forEach((section) => observer.observe(section));
@@ -48,20 +46,23 @@ export function ScrollProgress() {
   };
 
   return (
-    <div className="fixed right-6 md:right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3">
+    <div className="fixed right-6 md:right-8 top-1/2 -translate-y-1/2 z-50 hidden md:flex flex-col gap-3">
       {sectionsList.map((section) => {
         const isActive = activeHash === section.id;
         return (
           <button
             key={section.id}
             onClick={() => handleScrollTo(section.id)}
-            className="group p-2 flex items-center justify-center relative cursor-pointer"
+            className="group p-1.5 flex items-center justify-center relative cursor-pointer"
             aria-label={`Scroll to ${section.label}`}
           >
             <span
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                isActive ? "bg-accent scale-125" : "bg-transparent border border-muted-foreground/50 group-hover:border-foreground"
+              className={`block rounded-full ${
+                isActive
+                  ? "w-[6px] h-[6px] bg-accent scale-[1.4]"
+                  : "w-[6px] h-[6px] bg-muted/30 group-hover:bg-muted/60"
               }`}
+              style={{ transition: "all 0.3s ease" }}
             />
           </button>
         );

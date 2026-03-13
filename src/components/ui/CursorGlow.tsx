@@ -16,12 +16,11 @@ export function CursorGlow() {
 
     const updatePosition = () => {
       setPosition((prev) => {
-        // Very subtle easing towards the cursor
         const dx = targetPosition.current.x - prev.x;
         const dy = targetPosition.current.y - prev.y;
         return {
-          x: prev.x + dx * 0.15,
-          y: prev.y + dy * 0.15,
+          x: prev.x + dx * 0.12,
+          y: prev.y + dy * 0.12,
         };
       });
       requestRef.current = requestAnimationFrame(updatePosition);
@@ -37,9 +36,9 @@ export function CursorGlow() {
 
   return (
     <div 
-      className="fixed inset-0 pointer-events-none z-50 transition-opacity duration-300"
+      className="fixed inset-0 pointer-events-none z-50"
       style={{
-        background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(99,102,241,0.08), transparent 40%)`
+        background: `radial-gradient(320px circle at ${position.x}px ${position.y}px, rgba(99,102,241,0.05), transparent 40%)`
       }}
     />
   );

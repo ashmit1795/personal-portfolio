@@ -11,7 +11,7 @@ export function InteractiveHeading({ children }: InteractiveHeadingProps) {
   const { addToast } = useToast();
   const [retroActive, setRetroActive] = useState(false);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent<any>) => {
     // Check if Alt or Shift is held down
     if (e.altKey || e.shiftKey) {
       const nextState = !retroActive;

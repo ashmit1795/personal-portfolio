@@ -42,6 +42,7 @@ export function InteractiveHeading({ children }: InteractiveHeadingProps) {
       marginBottom="l"
       variant="heading-strong-xl"
       marginLeft="24"
+      title="Alt / Shift + Click to travel back in time 📺"
     >
       {children}
     </Heading>

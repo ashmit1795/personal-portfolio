@@ -23,6 +23,7 @@ const routes: RoutesConfig = {
   "/blog": true,
   "/gallery": false, // Disabled — no gallery content for a developer portfolio
   "/teapot": true,
+  "/secrets": true,
 };
 
 const display: DisplayConfig = {

@@ -62,6 +62,7 @@ export function InteractivePing() {
       vertical="center"
       onClick={handleClick}
       style={{ cursor: "pointer", userSelect: "none" }}
+      title="Click to simulate database server workload 🚨"
     >
       <span
         className={clickCount === 3 ? "ping-pulse" : ""}

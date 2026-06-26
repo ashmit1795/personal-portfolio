@@ -49,6 +49,7 @@ export function InteractiveAvatar({ src, size, style, className }: InteractiveAv
       onClick={handleClick}
       className={`${styles.avatarContainer} ${spinning ? styles.spin : ""} ${className || ""}`}
       style={{ cursor: "pointer", display: "inline-flex", ...style }}
+      title="Click to compile a backend joke 🐛"
     >
       <Avatar src={src} size={size} />
     </div>

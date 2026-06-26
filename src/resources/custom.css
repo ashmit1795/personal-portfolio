@@ -106,3 +106,48 @@
 .ping-pulse {
   animation: ping-pulse 0.6s infinite alternate;
 }
+
+/* Cyberpunk Transition Reboot Glitch Flash */
+.cyberpunk-splash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 0, 255, 0.1);
+  z-index: 100000;
+  pointer-events: none;
+  animation: flashAnimation 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes flashAnimation {
+  0% {
+    opacity: 0;
+    backdrop-filter: brightness(1.5) contrast(1.2) blur(0px);
+  }
+  15% {
+    opacity: 1;
+    backdrop-filter: brightness(2.2) contrast(1.6) blur(12px);
+    background: rgba(255, 0, 255, 0.4);
+  }
+  30% {
+    opacity: 0.7;
+    backdrop-filter: brightness(1.1) contrast(1.1) blur(2px);
+    background: rgba(51, 255, 51, 0.2);
+  }
+  45% {
+    opacity: 1;
+    backdrop-filter: brightness(1.9) contrast(1.4) blur(8px);
+    background: rgba(255, 0, 255, 0.3);
+  }
+  60% {
+    opacity: 0.5;
+    backdrop-filter: brightness(1) contrast(1.1) blur(1px);
+    background: rgba(0, 229, 255, 0.15);
+  }
+  100% {
+    opacity: 0;
+    backdrop-filter: brightness(1) contrast(1) blur(0px);
+    background: rgba(0, 0, 0, 0);
+  }
+}

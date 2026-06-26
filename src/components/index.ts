@@ -9,3 +9,5 @@ export { ScrollToHash } from "@/components/ScrollToHash";
 export { ThemeToggle } from "@/components/ThemeToggle";
 export { CustomMDX } from "@/components/mdx";
 export { InteractiveAvatar } from "@/components/InteractiveAvatar";
+export { InteractiveHeading } from "@/components/InteractiveHeading";
+export { InteractivePing } from "@/components/InteractivePing";

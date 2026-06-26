@@ -1,5 +1,6 @@
-import { Row, IconButton, SmartLink, Text } from "@once-ui-system/core";
+import { Row, IconButton, SmartLink, Text, Line } from "@once-ui-system/core";
 import { person, social } from "@/resources";
+import { InteractivePing } from "@/components";
 import styles from "./Footer.module.scss";
 
 export const Footer = () => {
@@ -21,15 +22,23 @@ export const Footer = () => {
           align: "center",
         }}
       >
-        <Text variant="body-default-s" onBackground="neutral-strong">
-          <Text onBackground="neutral-weak">© {currentYear} /</Text>
-          <Text paddingX="4">{person.name}</Text>
-          <Text onBackground="neutral-weak">
-            {/* Usage of this template requires attribution. Please don't remove the link to Once UI unless you have a Pro license. */}
-            / Build your portfolio with{" "}
-            <SmartLink href="https://once-ui.com/products/magic-portfolio">Once UI</SmartLink>
+        <Row gap="16" vertical="center" s={{ direction: "column", gap: "8", align: "center" }}>
+          <Text variant="body-default-s" onBackground="neutral-strong">
+            <Text onBackground="neutral-weak">© {currentYear} /</Text>
+            <Text paddingX="4">{person.name}</Text>
+            <Text onBackground="neutral-weak">
+              {/* Usage of this template requires attribution. Please don't remove the link to Once UI unless you have a Pro license. */}
+              / Build your portfolio with{" "}
+              <SmartLink href="https://once-ui.com/products/magic-portfolio">Once UI</SmartLink>
+            </Text>
           </Text>
-        </Text>
+          <Row gap="12" vertical="center" textVariant="body-default-xs" onBackground="neutral-weak">
+            <Line background="neutral-alpha-medium" vert height="12" s={{ hide: true }} />
+            <Text>{person.location}</Text>
+            <Line background="neutral-alpha-medium" vert height="12" />
+            <InteractivePing />
+          </Row>
+        </Row>
         <Row gap="16">
           {social.map(
             (item) =>

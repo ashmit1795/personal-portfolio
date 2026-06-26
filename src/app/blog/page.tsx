@@ -1,6 +1,7 @@
 import { Column, Heading, Meta, Schema } from "@once-ui-system/core";
 import { Posts } from "@/components/blog/Posts";
 import { baseURL, blog, person } from "@/resources";
+import { InteractiveHeading } from "@/components";
 
 export async function generateMetadata() {
   return Meta.generate({
@@ -28,9 +29,9 @@ export default function Blog() {
           image: `${baseURL}${person.avatar}`,
         }}
       />
-      <Heading marginBottom="l" variant="heading-strong-xl" marginLeft="24">
+      <InteractiveHeading>
         {blog.title}
-      </Heading>
+      </InteractiveHeading>
       <Column fillWidth flex={1} gap="40">
         <Posts range={[1, 1]} thumbnail />
         <Posts range={[2, 3]} columns="2" thumbnail direction="column" />

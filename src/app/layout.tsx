@@ -26,6 +26,10 @@ export async function generateMetadata() {
   });
   return {
     ...baseMeta,
+    openGraph: {
+      ...baseMeta.openGraph,
+      siteName: `${person.name} Portfolio`,
+    },
     icons: {
       icon: [{ url: person.avatar, type: "image/jpeg" }],
       apple: [{ url: person.avatar }],

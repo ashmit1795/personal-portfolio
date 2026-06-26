@@ -57,7 +57,7 @@ const home: Home = {
   image: "/images/og/home.png",
   label: "Home",
   title: `${person.name} — Backend Engineer`,
-  description: `Portfolio of Ashmit Patra — a backend engineer who enjoys building systems, learning in public, and understanding software from the inside out.`,
+  description: `Portfolio of Ashmit Patra — backend engineer focused on building systems, DevOps, GenAI and learning in public.`,
   headline: <>Building systems that work, understanding ones that don&apos;t</>,
   featured: {
     display: true,

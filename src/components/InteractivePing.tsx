@@ -31,7 +31,7 @@ export function InteractivePing() {
     } else if (nextCount === 1) {
       setLatency(128);
       addToast({
-        variant: "warning",
+        variant: "danger",
         message: "⚠️ Latency spike detected. Database replication lag is increasing...",
       });
     } else if (nextCount === 2) {

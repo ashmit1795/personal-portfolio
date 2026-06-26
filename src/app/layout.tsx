@@ -30,6 +30,9 @@ export async function generateMetadata() {
       ...baseMeta.openGraph,
       siteName: `${person.name} Portfolio`,
     },
+    other: {
+      "og:logo": `${baseURL}${person.avatar}`,
+    },
     icons: {
       icon: [{ url: person.avatar, type: "image/jpeg" }],
       apple: [{ url: person.avatar }],

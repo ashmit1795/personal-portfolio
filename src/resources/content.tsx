@@ -15,7 +15,7 @@ const person: Person = {
 
 const newsletter: Newsletter = {
   display: false,
-  title: <>Subscribe to {person.firstName}'s Newsletter</>,
+  title: <>Subscribe to {person.firstName}&apos;s Newsletter</>,
   description: <>Thoughts on backend engineering, DevOps, and learning in public.</>,
 };
 
@@ -58,7 +58,7 @@ const home: Home = {
   label: "Home",
   title: `${person.name} — Backend Engineer`,
   description: `Portfolio of Ashmit Patra — a backend engineer who enjoys building systems, learning in public, and understanding software from the inside out.`,
-  headline: <>Building systems that work, understanding ones that don't</>,
+  headline: <>Building systems that work, understanding ones that don&apos;t</>,
   featured: {
     display: true,
     title: (
@@ -74,7 +74,7 @@ const home: Home = {
   },
   subline: (
     <>
-      I'm {person.firstName}, a {person.role.toLowerCase()} currently studying CS at{" "}
+      I&apos;m {person.firstName}, a {person.role.toLowerCase()} currently studying CS at{" "}
       <Text as="span" size="xl" weight="strong">KIIT University</Text>. I spend my time
       building backend systems, poking around cloud infrastructure, and writing about what I
       learn along the way.
@@ -107,17 +107,17 @@ const about: About = {
 		title: "Introduction",
 		description: (
 			<>
-				I'm a CS student at KIIT University who got into programming because I couldn't stop wondering how things work under the hood. What
+				I&apos;m a CS student at KIIT University who got into programming because I couldn&apos;t stop wondering how things work under the hood. What
 				happens after you click that button? Where does the data go? How do thousands of people use the same app simultaneously without it
 				falling apart?
 				<br />
 				<br />
 				Those questions pushed me toward backend engineering — and eventually toward DevOps, cloud infrastructure, and distributed systems.
-				I'm not trying to collect technologies. I'm trying to understand the fundamentals well enough to pick up any tool I need.
+				I&apos;m not trying to collect technologies. I&apos;m trying to understand the fundamentals well enough to pick up any tool I need.
 				<br />
 				<br />
-				Right now I'm a CS student by day and a backend builder by night. I've shipped real projects, done a production internship, and I
-				write about everything I'm figuring out along the way.
+				Right now I&apos;m a CS student by day and a backend builder by night. I&apos;ve shipped real projects, done a production internship, and I
+				write about everything I&apos;m figuring out along the way.
 			</>
 		),
 	},
@@ -217,7 +217,7 @@ const about: About = {
 				title: "AI Engineering",
 				description: (
 					<>
-						Exploring practical applications of LLMs and generative AI — less interested in the hype, more interested in what's actually
+						Exploring practical applications of LLMs and generative AI — less interested in the hype, more interested in what&apos;s actually
 						useful in production. Have worked on AI-powered chatbot infrastructure during my internship.
 					</>
 				),

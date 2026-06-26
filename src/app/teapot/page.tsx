@@ -12,7 +12,7 @@ export default function TeapotPage() {
         418
       </Heading>
       <Text variant="heading-strong-m" onBackground="neutral-strong" align="center">
-        HTTP 418: I'm a Teapot
+        HTTP 418: I&apos;m a Teapot
       </Text>
       
       {/* ASCII Teapot */}
@@ -35,7 +35,7 @@ export default function TeapotPage() {
       <Text variant="body-default-m" onBackground="neutral-weak" align="center" wrap="balance">
         The requested server refuses to brew coffee because it is, permanently, a teapot. 
         This is a reference to the famous Hyper Text Coffee Pot Control Protocol (HTCPCP/1.0) 
-        developed as an IETF April Fools' Joke in 1998.
+        developed as an IETF April Fools&apos; Joke in 1998.
       </Text>
 
       <Row gap="12" horizontal="center">

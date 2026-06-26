@@ -40,7 +40,7 @@ export default function SecretsPage() {
           🔓 The Secret Chamber
         </Heading>
         <Text variant="body-default-l" onBackground="neutral-weak" align="center" wrap="balance">
-          Nice job hacking your way in! You've unlocked the secrets registry. Solve these riddles to trigger the portfolio's hidden easter eggs.
+          Nice job hacking your way in! You&apos;ve unlocked the secrets registry. Solve these riddles to trigger the portfolio&apos;s hidden easter eggs.
         </Text>
       </Column>
 
@@ -66,7 +66,7 @@ export default function SecretsPage() {
             </Row>
             
             <Text variant="body-default-m" onBackground="neutral-strong" style={{ letterSpacing: "-0.01em" }}>
-              "{riddle.clue}"
+              &ldquo;{riddle.clue}&rdquo;
             </Text>
 
             <Line background="neutral-alpha-weak" fillWidth />

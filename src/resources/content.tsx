@@ -98,6 +98,10 @@ const about: About = {
 		display: true,
 		link: "https://cal.com/ashmit-patra", // Replace with your Calendly/Cal.com link
 	},
+	resume: {
+		display: true,
+		link: "https://drive.google.com/file/d/1kY2MHlMd8jCTfx7_liU41uyhND60KYFE/view?usp=drive_link", // Replace with your Google Drive resume link
+	},
 	intro: {
 		display: true,
 		title: "Introduction",

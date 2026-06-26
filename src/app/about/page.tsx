@@ -117,29 +117,54 @@ export default function About() {
             vertical="center"
             marginBottom="32"
           >
-            {about.calendar.display && (
-              <Row
-                fitWidth
-                border="brand-alpha-medium"
-                background="brand-alpha-weak"
-                radius="full"
-                padding="4"
-                gap="8"
-                marginBottom="m"
-                vertical="center"
-                className={styles.blockAlign}
-                style={{
-                  backdropFilter: "blur(var(--static-space-1))",
-                }}
-              >
-                <Icon paddingLeft="12" name="calendar" onBackground="brand-weak" />
-                <Row paddingX="8">Schedule a call</Row>
-                <IconButton
-                  href={about.calendar.link}
-                  data-border="rounded"
-                  variant="secondary"
-                  icon="chevronRight"
-                />
+            {(about.calendar.display || about.resume?.display) && (
+              <Row wrap gap="12" marginBottom="m" className={styles.blockAlign} vertical="center">
+                {about.calendar.display && (
+                  <Row
+                    fitWidth
+                    border="brand-alpha-medium"
+                    background="brand-alpha-weak"
+                    radius="full"
+                    padding="4"
+                    gap="8"
+                    vertical="center"
+                    style={{
+                      backdropFilter: "blur(var(--static-space-1))",
+                    }}
+                  >
+                    <Icon paddingLeft="12" name="calendar" onBackground="brand-weak" />
+                    <Row paddingX="8">Schedule a call</Row>
+                    <IconButton
+                      href={about.calendar.link}
+                      data-border="rounded"
+                      variant="secondary"
+                      icon="chevronRight"
+                    />
+                  </Row>
+                )}
+                {about.resume?.display && (
+                  <Row
+                    fitWidth
+                    border="neutral-alpha-medium"
+                    background="neutral-alpha-weak"
+                    radius="full"
+                    padding="4"
+                    gap="8"
+                    vertical="center"
+                    style={{
+                      backdropFilter: "blur(var(--static-space-1))",
+                    }}
+                  >
+                    <Icon paddingLeft="12" name="document" onBackground="neutral-weak" />
+                    <Row paddingX="8">View Resume</Row>
+                    <IconButton
+                      href={about.resume.link}
+                      data-border="rounded"
+                      variant="secondary"
+                      icon="chevronRight"
+                    />
+                  </Row>
+                )}
               </Row>
             )}
             <Heading className={styles.textAlign} variant="display-strong-xl">

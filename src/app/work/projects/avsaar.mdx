@@ -1,0 +1,201 @@
+---
+title: "अवSaar — Student Placement Aggregator Platform"
+publishedAt: "2026-06-01"
+summary: "A full-stack placement management portal for engineering students with role-based access control, company job posting management, automated eligibility filtering, Inngest-powered background email pipelines, and PostgreSQL RPC-driven personalized feeds."
+images:
+    - "/images/projects/avsaar/cover-02.png"
+    - "/images/projects/avsaar/cover-01.png"
+team:
+    - name: "Ashmit Patra"
+      role: "Backend Engineer"
+      avatar: "/images/avatar.jpg"
+      linkedIn: "https://www.linkedin.com/in/ashmit1116/"
+link: "https://avsaar.vercel.app"
+---
+
+## Overview
+
+अवSaar (meaning _opportunity_ in Hindi) was built to solve a problem I see every semester at KIIT — the placement process is chaotic, information is scattered, and students miss opportunities simply because they never heard about them.
+
+Placement and circular information at KIIT arrives through fragmented, noisy, transient channels. PDFs disappear into WhatsApp scroll history. Mechanical engineering students wade through CSE-specific criteria that don't apply to them. Application windows close before the notification even reaches the right person.
+
+अवSaar is our answer to that chaos — a unified, high-performance, eligibility-aware dashboard where every circular is parsed, catalogued, tagged, and distributed only to students who actually qualify for it.
+
+> **Key Design Principle:** अवSaar is not an active job application portal. It is a **placement opportunity discoverability index** — students discover matches here, analyze eligibility criteria, and are redirected to the company's designated official portal (e.g., Superset, Cocubes, or a careers page) to complete their application.
+
+This was the project where I went deepest on role-based access control, domain modeling, event-driven architecture, and PostgreSQL as a first-class application layer — not just a store. It's also the project where I stopped thinking about software as "code that runs" and started thinking about it as "rules expressed in code."
+
+---
+
+## What It Does
+
+अवSaar splits access and features across three specialized user roles, each with a precise capability set.
+
+### For Students
+
+- **Personalized Eligible Feed** — A dashboard showing only approved jobs that match the student's exact branch, batch, CGPA, 10th/12th percentages, and backlog status. Eligibility is computed at the database layer via a PostgreSQL RPC — not in application code.
+- **Targeted Announcements** — A real-time notification board for academic updates, venue changes, shortlist PDFs, result announcements, and deadline extensions — filtered specifically to the student's branch and batch.
+- **All Opportunities Directory** — A searchable archive covering every historical, active, and closed listing on the platform.
+- **Secure Circular Downloads** — Official job circular PDFs served via cryptographically signed, expiring Supabase Storage URLs (300-second TTL). Public access to the bucket is blocked entirely.
+- **Dynamic Profile Management** — Sync Google OAuth info, update CGPA, input 10th/12th percentages, and upload a resume PDF.
+- **Opt-In Email Notifications** — Granular subscription control on the profile page. When a new job matches a student's profile, a transactional HTML email is dispatched via Brevo SMTP — asynchronously, via Inngest.
+
+### For Volunteers
+
+- **Multi-Step Job Creator** — Draft detailed job listings with compound branch targeting, batch restrictions, salary/CTC metadata, job type classification, and circular PDF attachments.
+- **Announcement Board Poster** — Create branch/batch-targeted announcements, set priority levels (Low / Medium / High / Critical), link them to specific job postings, and attach supporting circulars or result spreadsheets.
+- **Owned Opportunity Management** — Edit and manage postings created by yourself. Listings enter an Admin review queue before going live.
+
+### For Admins
+
+- **Metrics Operations Grid** — An overview tab with 8 real-time platform metrics: active users, student/volunteer/admin counts, and total/pending/approved/expired job tallies — powered by a dedicated PostgreSQL RPC.
+- **Opportunity Review Queues** — Approve or reject volunteer-submitted jobs via one-click modal inputs. Admin-created jobs are auto-approved and bypass the queue.
+- **Unified User Manager** — Search and filter users by name, role, email, or profile completion state. Promote students to volunteer, demote volunteers, or delete obsolete records.
+- **Academic Schema Customizer** — Dynamically add or remove programs (B.Tech, MCA), branches (CSE, MECH, ETC), and graduation batches (2026, 2027). Changes propagate instantly to onboarding forms and targeting engines.
+- **On-Demand Email Alert Dispatch** — Manually trigger high-fidelity email blasts for approved jobs or critical announcements, protected by a double-confirm safety dialog to prevent accidental spam.
+- **Administrative Audit Logs** — A paginated, timestamped log recording all administrative actions (promotions, job approvals, academic schema changes, manual dispatches, deletions) for accountability.
+
+---
+
+## Architecture
+
+अवSaar uses a decoupled headless architecture with three main layers communicating over secure HTTPS channels.
+
+```
+┌────────────────────────┐    HTTPS    ┌─────────────────────┐    HTTPS    ┌──────────────────────────┐
+│     Client Browser     │────────────▶│  Next.js App Router │────────────▶│    Express 5 Backend     │
+│   (React + Tailwind)   │◀────────────│ (Vercel / Port 5500)│◀────────────│   (Render / Port 5000)   │
+└───────────┬────────────┘             └─────────────────────┘             └────────────┬─────────────┘
+            │ Google OAuth 2.0                                                          │ Service Role Token
+            ▼                                                                           ▼
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                          Supabase Cloud Suite                                         │
+│   ┌────────────────────┐           ┌─────────────────────┐           ┌──────────────────────────┐     │
+│   │   Supabase Auth    │           │  Supabase Storage   │           │   Supabase PostgreSQL    │     │
+│   │ (Google Identity)  │           │   (PDF Buckets)     │           │  (`placement` schema)    │     │
+│   └────────────────────┘           └─────────────────────┘           └──────────────────────────┘     │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                                  ▲
+                                                  │ Async Events & Webhooks
+                                                  ▼
+                                    ┌─────────────────────────┐
+                                    │      Inngest Engine     │
+                                    │   (Background Workers)  │
+                                    └────────────┬────────────┘
+                                                 │ Brevo SMTP API
+                                                 ▼
+                                    ┌─────────────────────────┐
+                                    │    Student Mailboxes    │
+                                    └─────────────────────────┘
+```
+
+Every backend request traverses distinct architectural layers — Router → Middleware → Service → Repository → PostgreSQL — keeping HTTP routing, business logic, and data access cleanly separated. Each module (`users`, `jobs`, `announcements`, `academics`, `admin`) follows this four-layer structure, making the codebase modular, testable, and easy to audit.
+
+---
+
+## Technical Decisions
+
+### PostgreSQL as the Application Layer
+
+PostgreSQL was the obvious choice — the data is deeply relational. Students have branches and batches; companies have requirements; applications link students to postings; announcements can target overlapping subsets of both.
+
+But more importantly, PostgreSQL here is not just a store. Critical business logic — eligibility matching, announcement targeting, subscriber resolution — lives in custom RPC functions inside the `placement` schema:
+
+- **`placement.create_job_v3(...)`** — Executes multi-table inserts (job, locations, branches, batches) atomically in a single database transaction, eliminating partial-write failures.
+- **`placement.update_job(...)`** — Cleans up old junction table relations before inserting updated eligibility sets. No orphaned records, no stale branch mappings.
+- **`placement.get_job_feed(p_branch_id, p_batch_id, p_cgpa)`** — Returns only approved, active jobs where the student's CGPA meets the minimum threshold. Handles "ALL" sentinel branches (a wildcard that matches every branch in a given program) at the SQL layer.
+- **`placement.get_announcement_feed(p_branch_id, p_batch_id)`** — A more complex function supporting two announcement types: job-linked (inherits the job's eligibility targeting) and standalone (uses its own branch/batch junction tables). Falls back to global visibility when no targeting records exist.
+- **`placement.get_eligible_subscribers(p_branch_ids[], p_batch_ids[])`** — Fetches opted-in students matching arrays of branch and batch IDs. Includes a cardinality guard (`cardinality(p_branch_ids) = 0`) that correctly skips the filter when an array is empty — preventing the bug where an empty input matches zero students instead of all students.
+- **`placement.get_admin_dashboard_stats()`** — Aggregates 8 real-time metrics in a single query for the admin overview panel.
+
+Getting eligibility matching right required careful thinking about edge cases: partial eligibility, "ALL" branch wildcards, students updating their CGPA mid-process, and announcements that should reach all students versus a targeted subset.
+
+### Role-Based Access Control (RBAC) as a Middleware Layer
+
+RBAC was implemented as a proper, centralized middleware — not scattered logic across route handlers. The middleware stack for a protected route looks like this:
+
+```
+authenticate → roleGuard(['admin', 'volunteer']) → profileGuard → controller
+```
+
+- `auth.middleware.js` — Decodes the Supabase JWT via `supabase.auth.getUser()`, validates the email domain (only `@kiit.ac.in` accounts are permitted), syncs profile data to the database on each request, and attaches the user object to `req`.
+- `roleGuard.middleware.js` — Checks `req.user.role` against the route's declared allowed roles. Returns `403 Forbidden` on mismatch.
+- `profileGuard.middleware.js` — Blocks students with incomplete onboarding profiles from accessing protected data routes, redirecting them to `/onboarding`.
+- `validate.middleware.js` — Runs Zod schema validation on request bodies and parameters before they reach the controller. Invalid payloads never touch business logic.
+
+This made authorization auditable, testable, and centralized. RBAC sounds simple until you have three role types with overlapping but distinct permissions — volunteers can create postings but can't approve them; admins can approve but their own postings bypass the queue. The abstraction isn't "admin can do everything" — it's that each role has a precise capability set.
+
+### Inngest for Event-Driven Background Jobs
+
+Asynchronous tasks like email blasts are fully offloaded to Inngest to protect API response times from SMTP latency:
+
+```
+Admin posts a job
+    └──▶ Backend creates DB record & emits event to Inngest
+               └──▶ Inngest intercepts `job/posted`
+                        ├── Is deadline in the past? → Abort (prevent spam)
+                        └── No → invoke `get_eligible_subscribers` RPC
+                                    └──▶ Returns matched students (batched at 100)
+                                              └──▶ Brevo SMTP delivers HTML email to each student
+```
+
+Email functions cover the full student lifecycle: welcome emails on signup, profile completion reminders, job alert dispatches, and announcement alerts. The event model keeps the job-posting module entirely decoupled from the notification module — the job domain fires an event; notification handles it.
+
+### Authentication & Session Security
+
+Authentication uses a multi-layered security model through Supabase Auth with Google OAuth 2.0. The platform enforces email domain constraints at the backend — non-KIIT emails (e.g., `@gmail.com`) are rejected even if a Supabase token is valid, and the session is revoked server-side. JWTs are stored in session memory on the client (never in `localStorage`) and passed as Bearer tokens on every API request.
+
+Storage buckets add another security layer: `job-circulars` and `resumes` are fully private. Clients never get direct bucket access. All file downloads are served as cryptographically signed, time-limited URLs generated server-side by the backend's service-role Supabase client.
+
+---
+
+## Database Schema
+
+All entities live under the isolated `placement` schema to cleanly decouple from Supabase's internal `auth` and `storage` systems.
+
+**Core tables:**
+
+- `placement.users` — Extends Supabase auth users with role, academic profile (branch, batch, CGPA, 10th/12th percentages), resume URL, and `profile_completed` flag.
+- `placement.jobs` — Job postings with type enum (`placement`, `internship`, `internship_fulltime`, `hackathon`, `webinar`, `talk`), approval status, CGPA cutoff, deadline, and soft-delete flag.
+- `placement.job_announcements` — Targeted announcements with type enum (`general`, `shortlist`, `test_link`, `venue_update`, `result`, `warning`, and more), priority integer (0–3), pinning flag, and an `alert_sent` guard to prevent double-dispatch.
+- `placement.admin_logs` — Full audit trail with `action`, `target_type`, `target_id`, and a `jsonb` details payload.
+
+**Junction tables** manage the many-to-many relationships between jobs/announcements and their eligible branches and batches: `job_eligible_branches`, `job_eligible_batches`, `announcement_eligible_branches`, `announcement_eligible_batches`, and `job_locations`.
+
+**Migrations** are tracked via Supabase CLI with timestamped SQL files — 36 incremental migrations from initial auth schema through the final announcement targeting system.
+
+---
+
+## Performance Engineering
+
+- **Lazy-Tab Query Optimization** — TanStack Query fetches data only when a specific tab becomes active, cutting initial page load queries and database round-trips in half compared to concurrent prefetching.
+- **Dual-Pass Chronological Sorting** — Active listings (future deadlines) are promoted to the top of the feed; closed listings sink to the bottom. Both groups are then sorted chronologically within themselves via custom PostgreSQL ordering.
+- **Retroactive Backdating** — An optional `p_created_at` parameter in `create_job_v3` lets admins backdate postings to preserve accurate chronological archives.
+- **Past-Deadline Safety Guards** — Background workers inspect opportunity deadlines before processing notifications. If the deadline has passed, email dispatch is cancelled — preventing accidental spam to students.
+- **Strict Base-10 Integer Parsing** — Fixed a type-coercion bug in pagination parameters where stringified query params caused incorrect database range calculations. `parseInt(page, 10)` everywhere.
+
+---
+
+## What I Learned
+
+RBAC sounds simple until you have three different kinds of roles with overlapping but distinct permissions. Volunteers can create but not approve. Admins can approve, but their own posts skip the queue. The abstraction you need isn't "admin can do everything" — it's that each role has a precise capability set, and those sets can overlap in non-trivial ways.
+
+This project also taught me to treat PostgreSQL as a genuine application layer, not just a persistence store. Moving eligibility logic into RPC functions meant the matching rules lived in one place, ran close to the data, and didn't require me to hydrate thousands of rows into Node.js to filter in application code.
+
+And Inngest genuinely changed how I think about asynchronous workloads. Decoupling the job-posting domain from the notification domain meant both became simpler. The job module doesn't need to know a notification system exists. It fires an event. The notification module handles the rest. When something goes wrong, I know exactly where to look.
+
+Finally — the eligibility matching edge cases. A student updating their CGPA mid-cycle. A branch wildcard that should match an entire program. An announcement that should be global but has empty targeting arrays. Getting the cardinality guard right in `get_eligible_subscribers` (so an empty array means "all" rather than "none") was a subtle but consequential bug that would have silently dropped email alerts for every student.
+
+Software is domain rules expressed in code. The rules were the hard part. The code was just the expression.
+
+---
+
+## Stack
+
+**Frontend:** Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · shadcn/ui · TanStack Query v5 · Axios · Supabase Client SDK · SimpleMDE
+
+**Backend:** Node.js (ES Modules) · Express 5 · Supabase JS (Service Role) · Zod · Multer · Inngest · Brevo SMTP · Helmet · Morgan
+
+**Database & Cloud:** Supabase PostgreSQL · Supabase Auth (Google OAuth 2.0) · Supabase Storage · Custom PostgreSQL RPC Functions · Row-Level Security
+
+**DevOps:** Vercel (frontend) · Render (backend) · Supabase CLI migrations · Vercel Analytics

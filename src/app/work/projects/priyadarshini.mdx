@@ -1,0 +1,192 @@
+---
+title: "Priyadarshini - Movie Ticket Booking Platform Project"
+publishedAt: "2025-03-01"
+summary: "A full-stack MERN movie ticket booking platform with Clerk authentication, real-time seat booking, QR-based ticket verification, Cashfree payment integration, and Inngest-powered background workflows."
+images:
+  - "/images/projects/priyadarshini/cover-01.png"
+team:
+  - name: "Ashmit Patra"
+    role: "Full Stack Engineer"
+    avatar: "/images/avatar.jpg"
+    linkedIn: "https://www.linkedin.com/in/ashmit1116/"
+link: "https://priyadarshini.ashmitpatra.in"
+---
+
+## Overview
+
+Priyadarshini is my first complete full-stack MERN project — and by the time it was done, it had become the most complete product I've shipped.
+
+The idea started simple: build a movie ticket booking system. But what made it educational wasn't any one feature — it was having to connect every layer of a real product. Authentication, seat state, payment lifecycle, async background jobs, QR verification, transactional emails — all of it had to work together end-to-end. Each integration surface introduced a new class of problems I hadn't planned for.
+
+Live deployments: [Frontend](https://priyadarshini-client.vercel.app/) · [Backend](https://priyadarshini-nine.vercel.app/)
+
+---
+
+## What It Does
+
+**User-facing:**
+- Browse now-playing and upcoming movies with trailers, synopsis, cast, and ratings (sourced via TMDB)
+- Interactive seat layout with real-time availability — seats are reserved the moment a user selects them
+- Clerk authentication with email/password and social login (OTP verification for phone)
+- Cashfree payment gateway (UPI, credit/debit card, net banking)
+- QR code generated per booking on successful payment; used for venue entry
+- Full booking history with status (paid / pending / cancelled)
+- Save and manage favorite movies (stored in Clerk private metadata)
+- Responsive UI with mobile support
+
+**Admin panel:**
+- Secure admin login (Clerk role check via `privateMetadata.role`)
+- Add, manage, and delete movies and showtimes
+- Dashboard with total bookings, total revenue, active shows, and registered users
+- List upcoming and past shows
+- QR-based ticket verification with a time-window guard (valid from 1 hour before showtime until the show ends)
+- View all bookings with user and show details
+
+---
+
+## Architecture
+
+The project is a standard MERN monorepo split into `client/` and `server/`, deployed separately on Vercel.
+
+**Frontend:** React 19 + Vite, Tailwind CSS v4, React Router v7, Axios, Clerk React SDK, `qrcode.react` for QR rendering, `react-player` for trailers, `react-hot-toast` for notifications.
+
+**Backend:** Node.js + Express.js, MongoDB with Mongoose, Clerk Express SDK for auth middleware, Cashfree PG SDK for payments, Nodemailer for transactional email, Inngest for all background/async workflows.
+
+**Routing structure (backend):**
+
+```
+/user     → profile, bookings, favorites
+/movie    → listings, trailers
+/show     → now-playing, add (admin), list, by-movie
+/booking  → create, verify-payment, complete-booking, verify (QR)
+/admin    → dashboard, all-shows, all-bookings, past-shows
+/contact  → contact form handler
+```
+
+**Data models:**
+
+- `User` — synced from Clerk webhooks (`_id` is Clerk user ID)
+- `Movie` — TMDB-sourced; stores title, overview, genres, cast, runtime, trailer URL, poster/backdrop paths
+- `Show` — references a Movie; stores `showDateTime`, `showPrice`, and `occupiedSeats` as a key-value object `{ seatId: userId }`
+- `Booking` — references Show and User; stores `bookedSeats[]`, `amount`, `isPaid`, `paymentLink`, `qrToken` (UUID), `checkedIn`
+
+---
+
+## Technical Decisions
+
+### Clerk for Authentication
+
+This was my first time delegating authentication entirely to a third-party service instead of building it myself. The decision was deliberate — auth done wrong is a security liability, and I wanted to focus on product logic.
+
+Clerk handles session management, social login, phone OTP, and user lifecycle. On the backend, `@clerk/express` exposes `req.auth()` to extract `userId` from the JWT on every request.
+
+Admin role checks use Clerk's `privateMetadata`:
+
+```js
+const { userId } = req.auth();
+const user = await clerkClient.users.getUser(userId);
+if (user.privateMetadata.role !== "admin") {
+    return res.json({ success: false, message: "Forbidden" });
+}
+```
+
+Favorites are also stored in `privateMetadata.favoriteMovies` as an array of movie IDs — a lightweight approach that avoids a separate DB collection for a non-critical feature.
+
+### Inngest for Background Workflows
+
+Inngest is the backbone of everything asynchronous in this project. I used it for 7 distinct workflows:
+
+**1. Clerk user sync** (`clerk/user.created`, `clerk/user.updated`, `clerk/user.deleted`) — mirrors Clerk's user lifecycle to MongoDB. This keeps a local `User` record in sync for joins (booking → user) without querying Clerk on every request.
+
+**2. Seat release after payment timeout** (`app/checkpayment`) — triggered immediately when a booking is created. Uses `step.sleepUntil` to pause for 10 minutes, then checks if the booking is paid. If not, it deletes the booking and removes the seats from `show.occupiedSeats`:
+
+```js
+await step.sleepUntil("wait-for-10-minutes", tenMinutesLater);
+await step.run("check-payment-status", async () => {
+    const booking = await Booking.findById(bookingId);
+    if (!booking.isPaid) {
+        const show = await Show.findById(booking.show);
+        booking.bookedSeats.forEach(seat => delete show.occupiedSeats[seat]);
+        show.markModified("occupiedSeats");
+        await show.save();
+        await Booking.findByIdAndDelete(booking._id);
+    }
+});
+```
+
+**3. Booking confirmation email** (`app/show.booked`) — triggered after payment verification confirms success; sends a styled HTML email with movie title, show date/time, and booked seats.
+
+**4. Payment pending email** (`app/payment.pending`) — triggered when payment verification finds the payment incomplete; sends the user a reminder with their booking ID, seats, and a link to complete payment within the 10-minute window.
+
+**5. Show reminders cron** (`cron: "0 */8 * * *"`) — runs every 8 hours. Finds shows scheduled within the next 8-hour window, collects all users who have booked those shows from `occupiedSeats`, and sends reminder emails via `Promise.allSettled`.
+
+**6. New show notification** (`app/show.added`) — when an admin adds a new show, all registered users receive an email with the movie poster (via TMDB backdrop path), description, and a direct booking link.
+
+**7. Payment pending email** — separate from the show reminder; fires on the `app/payment.pending` event immediately when a Cashfree payment verification returns non-SUCCESS.
+
+### Cashfree Payment Gateway
+
+Cashfree was chosen for its strong India-market support (UPI, net banking) and well-documented API. The payment lifecycle taught me more about fault tolerance than anything else in this project.
+
+The flow:
+
+1. `POST /booking/create` — seats are reserved in `occupiedSeats` immediately; a Cashfree order is created with a 30-minute expiry; the `payment_session_id` is returned to the frontend
+2. Frontend uses `@cashfreepayments/cashfree-js` to open the payment modal
+3. Cashfree redirects to `GET /booking/verify-payment/:bookingId` on completion
+4. The server calls `cashfree.PGOrderFetchPayments(bookingId)` to check status
+5. On SUCCESS: `booking.isPaid = true`, `qrToken` is generated via `crypto.randomUUID()`, confirmation email is fired via Inngest
+6. On non-SUCCESS: payment pending email is fired via Inngest; seats will be released after the 10-minute Inngest window
+
+A key design issue I had to reason through: what happens if the payment succeeds but the server crashes before writing the confirmation? The Cashfree `return_url` acts as the recovery path — even on a retry, `PGOrderFetchPayments` returns the real payment status, making the handler idempotent. The `qrToken` generation only happens when `isPaid` transitions to true, preventing duplicate tokens.
+
+### QR Ticket Verification
+
+QR codes are generated client-side using `qrcode.react`. The QR encodes the booking's `qrToken` — a UUID generated server-side via `crypto.randomUUID()` and stored with a unique index on the `Booking` model.
+
+Verification on the admin side (`GET /booking/verify/:token`):
+
+```js
+const booking = await Booking.findOne({ qrToken: token, isPaid: true });
+
+const showEndTime = new Date(showStartTime.getTime() + movie.runtime * 60000);
+const validFrom = new Date(showStartTime.getTime() - 60 * 60000); // 1 hour before
+
+if (now < validFrom) return { error: "Ticket not valid yet" };
+if (now > showEndTime) return { error: "Ticket expired" };
+if (booking.checkedIn) return { error: "Ticket already used" };
+
+booking.checkedIn = true;
+await booking.save();
+```
+
+Three guards: time window, expiry, and one-use. The `checkedIn` flag prevents double-entry. The time window is calculated using the movie's actual runtime from the DB, not a hardcoded duration.
+
+### Real-Time Seat State
+
+Seat state lives in `show.occupiedSeats` as a plain MongoDB object: `{ "A1": "user_clerk_id", "A3": "user_clerk_id" }`. This makes it fast to check availability (a simple key lookup), easy to free seats (delete the key), and queryable by user ID (Object.values).
+
+Mongoose requires `markModified("occupiedSeats")` after mutating a plain object field — without it, Mongoose's change tracking doesn't detect the diff and skips the DB write. This is a non-obvious footgun I hit early.
+
+### Email Infrastructure
+
+Nodemailer is configured with a verified business email and an alias system. Different workflows use different sender aliases (`+bookings`, `+shows`, `+contact`) with matching display names — so users see "Priyadarshini Bookings" vs "Priyadarshini Shows" in their inbox. All email templates are inline HTML with consistent dark branding.
+
+---
+
+## What I Learned
+
+This project was the first time I built something that resembled a real product with a real user flow. There's a meaningful difference between "I built an API" and "I built something someone could actually use to buy a ticket."
+
+**Webhook and async handling** is where the real complexity lives. When money is involved, every failure path matters — not just the happy path. I learned to treat payment verification as inherently unreliable and design around it.
+
+**Inngest's `step.sleepUntil`** fundamentally changed how I think about time-based logic. Instead of polling or cron hacks, you describe the intent (wait 10 minutes, then check) and Inngest handles the durable execution. The seat release workflow would be brittle and complex as a raw cron job.
+
+**Mongoose's `markModified`** on plain Object fields is the kind of thing you only learn by debugging a maddening issue where data updates visually but never persists.
+
+**Clerk's webhook-based user sync** was the right pattern — it decouples auth from data, lets you join User records in your own DB without Clerk API latency on every request, and handles the full lifecycle (create, update, delete) cleanly.
+
+---
+
+## Stack
+
+React 19 · Vite · Tailwind CSS v4 · Node.js · Express.js · MongoDB · Mongoose · Clerk · Cashfree PG · Inngest · Nodemailer · QRCode.React · React Player · Vercel

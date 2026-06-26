@@ -1,0 +1,249 @@
+---
+title: "Playtube — Video Hosting Platform Backend"
+publishedAt: "2024-12-01"
+summary: "A production-grade backend system modeled after YouTube — built to understand how content platforms handle auth, uploads, subscriptions, and social features at scale. Covers access/refresh token rotation, Cloudinary file management with cleanup, MongoDB aggregation pipelines for channel stats and watch history, and a polymorphic like system across videos, comments, and community posts."
+images: []
+team:
+  - name: "Ashmit Patra"
+    role: "Backend Engineer"
+    avatar: "/images/avatar.jpg"
+    linkedIn: "https://www.linkedin.com/in/ashmit1116/"
+link: "https://github.com/ashmit1795/backend-project"
+---
+
+## Overview
+
+Playtube is probably the project I'm most proud of. Not because it's the most complex, but because it's the one that fundamentally changed how I think about backend engineering.
+
+I built it to answer a simple question: how does a platform like YouTube actually work on the backend? Not the recommendation algorithm or CDN magic — just the core: users, videos, subscriptions, comments, likes, playlists. What does the data model look like? How do you handle uploads without blocking the server? How do you structure authorization so it doesn't become a mess as the codebase grows?
+
+Building Playtube forced me to answer every one of those questions with real code.
+
+---
+
+## What It Does
+
+Playtube is a RESTful API exposing 9 domain modules under `/api/v1/`:
+
+- **Users** — Register, login, logout, token refresh, password change, profile update, avatar and cover image management, channel profile lookup, and watch history.
+- **Videos** — Publish, browse, search, view (with unique view tracking), update, delete, and toggle publish status.
+- **Comments** — Full CRUD on video comments with paginated retrieval and ownership enforcement.
+- **Likes** — Polymorphic toggle-like system covering videos, comments, and tweets with live like count responses.
+- **Subscriptions** — Subscribe/unsubscribe to channels, retrieve a channel's subscribers, and retrieve channels a user is subscribed to.
+- **Playlists** — Create, read, update, delete, and manage video membership within playlists.
+- **Tweets (Community Posts)** — Create, read, update, and delete short-form community posts per channel, modeled after YouTube's community tab.
+- **Dashboard** — Aggregated channel statistics (total videos, views, likes, comments, tweets, and subscriber count) and a full video listing for the authenticated channel owner.
+- **Health Check** — Server uptime verification endpoint.
+
+---
+
+## Architecture
+
+Playtube follows a flat MVC structure with clear separation between routing, business logic, and data access:
+
+```
+src/
+├── app.js               # Express setup, CORS, middleware configuration
+├── index.js             # DB connection and server bootstrap
+├── constants.js         # DB_NAME and shared constants
+├── controllers/         # Business logic per domain
+├── models/              # Mongoose schemas
+├── routes/              # Express routers per domain
+├── middlewares/         # auth (verifyAccessToken) + multer (file uploads)
+└── utils/               # ApiError, ApiResponse, asyncHandler, cloudinary helpers
+```
+
+Every controller is wrapped in `asyncHandler` — a utility that resolves the controller's returned Promise and pipes any rejection into Express's `next(err)`, eliminating repetitive try/catch blocks across the entire codebase.
+
+Error responses use a custom `ApiError` class extending native `Error`, which captures a proper stack trace via `Error.captureStackTrace`. Success responses use a matching `ApiResponse` class with `success: statusCode < 400` computed automatically. Every endpoint returns a consistent shape:
+
+```json
+{
+  "data": { ... },
+  "message": "Action completed successfully",
+  "statusCode": 200,
+  "success": true
+}
+```
+
+---
+
+## Technical Decisions
+
+### JWT with Access/Refresh Token Rotation
+
+The auth system goes beyond the naive "one token forever" approach seen in most tutorials.
+
+The `User` model carries two token-generating methods directly on the Mongoose document:
+
+```js
+userSchema.methods.generateAccessToken = function() {
+    return jwt.sign({ _id, username, email, fullName }, ACCESS_TOKEN_SECRET, { expiresIn });
+};
+userSchema.methods.generateRefreshToken = function() {
+    return jwt.sign({ _id }, REFRESH_TOKEN_SECRET, { expiresIn });
+};
+```
+
+Access tokens are short-lived and carry the full user identity payload. Refresh tokens are long-lived, minimal (only `_id`), and persisted in the database — which means they can be invalidated server-side. On logout, the stored `refreshToken` field is set to `null`, which actively revokes the session even if the refresh token itself hasn't expired yet.
+
+The `/refresh-token` endpoint verifies the incoming token against both the JWT signature AND the stored value in the database:
+
+```js
+if (!user || user.refreshToken !== incomingRefreshToken) {
+    throw new ApiError(401, "Refresh token expired or invalid");
+}
+```
+
+This double-check means stolen refresh tokens are invalidated the moment the legitimate user logs out or refreshes. Both tokens are delivered as `httpOnly`, `secure` cookies — not accessible to client-side JavaScript.
+
+Password hashing runs via a `pre("save")` Mongoose hook using bcrypt at 10 salt rounds, so the plain password never touches the database. The hook only re-hashes when the `password` field is actually modified, preventing unnecessary re-hashing on unrelated saves.
+
+The `verifyAccessToken` middleware reads the token from either `req.cookies.accessToken` or the `Authorization: Bearer <token>` header, making the API usable from both browser clients (cookie-based) and programmatic clients (header-based).
+
+### Cloudinary Upload Pipeline with Cleanup
+
+Multer is configured with `diskStorage`, writing uploaded files to `public/temp/` locally first. The `uploadToCloudinary` utility then streams that file to Cloudinary with `resource_type: "auto"` — handling both video files and images without separate upload paths.
+
+Critically, the local temp file is always cleaned up after the attempt — success or failure:
+
+```js
+try {
+    const response = await cloudinary.uploader.upload(localFilePath, { resource_type: "auto" });
+    fs.unlinkSync(localFilePath); // Clean up on success
+    return response;
+} catch (error) {
+    fs.unlinkSync(localFilePath); // Clean up on failure
+    throw new Error(error);
+}
+```
+
+This prevents temp files from accumulating on disk across upload failures.
+
+When a user updates their avatar or cover image, the old Cloudinary asset is deleted after the new one is confirmed uploaded successfully. The `deleteFileFromCloudinary` utility extracts the public ID from the Cloudinary URL by splitting on `/` and stripping the file extension — then calls `cloudinary.uploader.destroy(publicId)`. The same cleanup cascade runs on video deletion: both the video file and thumbnail are removed from Cloudinary, the video document is hard-deleted from MongoDB, all comments on the video are bulk-deleted, and every user's `watchHistory` array has the video ID pulled out via `$pull`.
+
+On video publish, the `duration` field is populated directly from Cloudinary's upload response metadata rather than requiring a separate client-provided value.
+
+### MongoDB Aggregation Pipelines
+
+The most interesting query work in Playtube happens in the aggregation pipelines. Several examples:
+
+**Channel profile** (`getUserChannelDetails`) — A single pipeline on the `User` collection runs two `$lookup` stages against the `subscriptions` collection: one to get all subscribers of the channel, another to get all channels the user subscribes to. `$addFields` then computes `subscriberCount`, `subscribedChannelsCount`, and `isSubscribed` (using `$cond` with `$in` to check if the requesting user's ID is in the subscriber array) — all in one round-trip:
+
+```js
+{
+    $addFields: {
+        subscriberCount: { $size: "$subscribers" },
+        subscribedChannelsCount: { $size: "$subscribedChannels" },
+        isSubscribed: {
+            $cond: {
+                if: { $in: [req.user._id, "$subscribers.subscriber"] },
+                then: true,
+                else: false
+            }
+        }
+    }
+}
+```
+
+**Watch history** (`getWatchHistory`) — A nested `$lookup` pipeline: the outer lookup joins the user's `watchHistory` IDs to the `videos` collection, and an inner sub-pipeline `$lookup` then joins each video's `owner` to the `users` collection to embed channel info directly on each history item. One query for a fully hydrated history feed.
+
+**Dashboard channel stats** (`getChannelStats`) — Three separate aggregate pipelines run for videos, tweets, and subscriptions. The video pipeline does a `$lookup` on both `likes` and `comments` collections, computes per-video counts via `$addFields`, then `$group`s into totals for the entire channel: `totalVideos`, `totalViews`, `totalLikes`, `totalComments`. The subscription pipeline is a simple `$match` + `$group` to count records.
+
+**Unique view counting** (`calculateUniqueVideoViews`) — A two-stage `$group` pipeline: first groups by `{ videoId, userId }` to deduplicate repeat watches from the same user, then groups by `videoId` to count unique users. This ensures the view count reflects unique viewers rather than raw watch events.
+
+**Video feed** (`getAllVideos`) — A dynamic aggregation pipeline with conditional prepending. If a `query` or `tag` param is present, a `$text` + `$regex` match stage is unshifted to the front of the pipeline. The pipeline then looks up the owner, sorts by a dynamic `sortBy` field, and applies `skip`/`limit` via `mongoose-aggregate-paginate-v2` for cursor-based pagination.
+
+### Polymorphic Like System
+
+The `Like` model uses optional reference fields to support likes across all content types:
+
+```js
+const likeSchema = new Schema({
+    comment: { type: ObjectId, ref: 'Comment' },
+    video:   { type: ObjectId, ref: 'Video' },
+    tweet:   { type: ObjectId, ref: 'Tweet' },
+    likedBy: { type: ObjectId, ref: 'User' }
+});
+```
+
+The toggle logic is unified: `toggleLike(type, entityId, userId)` checks for an existing like document and either creates or deletes it. After the toggle, a separate `calculateTotalLikes(type, entityId)` call returns the updated count so the response includes live feedback. Three separate toggle endpoints (`/toggle/v/:videoId`, `/toggle/c/:commentId`, `/toggle/t/:tweetId`) share this helper, keeping the controller logic thin.
+
+### Subscription Model Design
+
+Subscriptions are modeled as a standalone collection with two `User` references per document:
+
+```js
+const subscriptionSchema = new Schema({
+    subscriber: { type: ObjectId, ref: "User" },
+    channel:    { type: ObjectId, ref: "User" }
+});
+```
+
+This makes it trivial to query in either direction: "who subscribes to this channel" (`$match: { channel: channelId }`) or "what channels does this user subscribe to" (`$match: { subscriber: subscriberId }`). The `toggleSubscription` controller also enforces a self-subscription guard: if `channelId === subscriberId`, it returns `400` before touching the database.
+
+---
+
+## Data Models
+
+**`User`** — `username` (unique, indexed), `email` (unique), `fullName` (indexed), `avatar` (required Cloudinary URL), `coverImage` (optional URL), `watchHistory` (array of Video refs), `password` (bcrypt-hashed via pre-save hook), `refreshToken` (nullable, for server-side session revocation).
+
+**`Video`** — `videoFile` and `thumbnail` (Cloudinary URLs), `owner` (User ref), `title`, `description`, `duration` (from Cloudinary metadata), `views`, `isPublished`, `tags` (string array). Has a compound text index on `title` and `description` for full-text search, and `mongoose-aggregate-paginate-v2` plugin for cursor-based pagination.
+
+**`Comment`** — `content`, `video` (Video ref), `owner` (User ref). Also carries the `mongooseAggregatePaginate` plugin for paginated retrieval.
+
+**`Like`** — Polymorphic: optional `comment`, `video`, or `tweet` ObjectId ref plus `likedBy` (User ref). Only one content type is populated per document.
+
+**`Subscription`** — `subscriber` + `channel`, both User refs. Acts as a join table for the many-to-many channel relationship.
+
+**`Playlist`** — `name`, `description`, `videos` (array of Video refs), `owner` (User ref).
+
+**`Tweet`** — `content`, `owner` (User ref). Community posts modeled after YouTube's community tab.
+
+---
+
+## API Reference
+
+Base path: `/api/v1/`
+
+**Users** (`/users`): `POST /register` (multipart, avatar required), `POST /login`, `POST /logout`, `POST /refresh-token`, `PATCH /change-password`, `GET /my-profile`, `PATCH /update-profile`, `PATCH /update-avatar`, `PATCH /update-cover-image`, `GET /channel/:username`, `GET /watch-history`
+
+**Videos** (`/videos`): `POST /` (multipart, video + thumbnail), `GET /` (paginated, searchable), `PATCH /view/:videoId`, `PATCH /:videoId` (update), `DELETE /:videoId`, `PATCH /toggle-publish-status/:videoId`
+
+**Comments** (`/comments`): `GET /:videoId` (paginated), `POST /:videoId`, `PATCH /c/:commentId`, `DELETE /c/:commentId`
+
+**Likes** (`/likes`): `POST /toggle/v/:videoId`, `POST /toggle/c/:commentId`, `POST /toggle/t/:tweetId`, `GET /videos`, `GET /comments`, `GET /tweets`
+
+**Subscriptions** (`/subscriptions`): `GET /c/:channelId` (subscribers), `POST /c/:channelId` (toggle), `GET /u/:subscriberId` (subscribed channels)
+
+**Playlists** (`/playlists`): `POST /`, `GET /:playlistId`, `PATCH /:playlistId`, `DELETE /:playlistId`, `PATCH /add/:videoId/:playlistId`, `PATCH /remove/:videoId/:playlistId`, `GET /user/:userId`
+
+**Tweets** (`/tweets`): `POST /`, `GET /user/:username`, `PATCH /:tweetId`, `DELETE /:tweetId`
+
+**Dashboard** (`/dashboard`): `GET /stats`, `GET /videos`
+
+**Health** (`/health-check`): `GET /`
+
+Every route except `/register`, `/login`, `/refresh-token`, and `/health-check` is protected by `verifyAccessToken` middleware.
+
+---
+
+## What I Learned
+
+This project exposed patterns I hadn't encountered in tutorials.
+
+**JWT isn't free.** Stateless authentication forces you to think carefully about token expiry windows, what the refresh flow actually protects against, and what happens when a token is compromised. The answer — persisting and nullifying the refresh token server-side — makes the system stateful in exactly one place, by design.
+
+**MongoDB aggregation pipelines can replace entire query layers.** The watch history query — a nested `$lookup` inside a `$lookup` — returns a fully hydrated feed in a single round-trip. Without pipelines, that's at least three sequential queries. Getting comfortable with `$addFields`, `$group`, `$unwind`, and sub-pipelines changed how I think about data fetching.
+
+**Authorization belongs in middleware, not controllers.** The `verifyAccessToken` middleware handles identity verification and attaches `req.user` before any controller runs. Ownership checks (e.g., "does this user own this video?") are still in the controller, but they're a deliberate business rule — not a security boundary. Keeping those concerns separate made the authorization layer easy to reason about.
+
+**File cleanup is infrastructure, not an afterthought.** Blocking the request thread on a video upload isn't an option. But more subtly, cleanup — deleting old Cloudinary assets when avatars are updated, purging temp files on upload failure, cascading comment and watch history deletion when a video is removed — needs to be as carefully designed as the happy path.
+
+**The domain is the hard part.** A video platform has surprisingly deep logic under the surface. What counts as a unique view? Should the like count be computed on read or stored? How do you model subscriptions so you can query in either direction cheaply? The code itself was manageable. Answering those questions correctly was the work.
+
+---
+
+## Stack
+
+Node.js (ES Modules) · Express 4 · MongoDB · Mongoose 8 · mongoose-aggregate-paginate-v2 · JWT (jsonwebtoken) · bcrypt · Cloudinary v2 · Multer · cookie-parser · dotenv · Prettier

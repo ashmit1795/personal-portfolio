@@ -1,0 +1,61 @@
+---
+title: "What my first production bug taught me"
+publishedAt: "2025-11-01"
+summary: "During my internship at Nurdd, I pushed a fix that broke something else. A background job started failing silently for half a day. Here's what I did wrong and what I'd do differently."
+tag: "Engineering"
+image: "/images/gallery/horizontal-1.jpg"
+---
+
+I'm going to be honest about this one.
+
+During my internship at Nurdd, I introduced a bug in production. Not intentionally — I was fixing something else and didn't think through the side effects carefully enough.
+
+The bug wasn't catastrophic. No data was lost. But a background job started failing silently for about half a day before anyone caught it.
+
+Here's what actually happened.
+
+---
+
+## What happened
+
+I was modifying an API endpoint that triggered a background workflow. The workflow ran asynchronously — it processed some incoming data and dispatched a notification to users.
+
+I changed the shape of the payload the endpoint passed to the workflow. The endpoint worked fine. Tests passed. I merged the PR.
+
+What I didn't check: the workflow validated its incoming payload schema. My change broke that validation. The workflow started failing immediately after being queued — but because the failure was async, nothing showed up in the API logs. The endpoint kept returning 200s. Everything looked fine.
+
+Half a day of silent failures. Notifications never sent.
+
+---
+
+## What I did wrong
+
+A few things, and they're worth naming specifically:
+
+**I tested the endpoint, not the system.** My tests confirmed that the API returned the right response. They didn't confirm that the downstream workflow actually ran to completion.
+
+**I didn't trace the full data flow.** I understood the endpoint. I understood the workflow existed. I didn't clearly think through the *contract* between them and whether my change violated it.
+
+**I assumed silence meant success.** This is probably the most important lesson. When a background job fails and nobody has instrumented it properly, it fails *silently*. Silent failures are worse than loud ones because they give you false confidence that everything is working.
+
+---
+
+## What I'd do differently
+
+Read the full data flow before touching anything. Not just the function I'm changing — the entire path from input to final outcome.
+
+Write tests that cross the boundary between components, not just tests that validate each component in isolation.
+
+Log aggressively in async code. A background job that fails without a trace is effectively invisible.
+
+And most importantly: *when you change a thing, ask yourself what else depends on that thing.*
+
+---
+
+## Why I'm writing this
+
+Not because the bug was particularly interesting. Because the lesson from it keeps showing up everywhere.
+
+Every system has contracts between components. Sometimes they're explicit (typed interfaces, schemas). Sometimes they're implicit (shape of a payload, order of operations, timing assumptions). When you change one side of a contract without updating the other, something breaks.
+
+The code was easy to fix. Developing the habit of thinking about contracts — that took longer.

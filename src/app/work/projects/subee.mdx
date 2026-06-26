@@ -1,0 +1,188 @@
+---
+title: "Subscription Tracker API - 🐝SubBee"
+publishedAt: "2025-01-01"
+summary: "A subscription tracking REST API that automatically monitors recurring subscriptions and fires multi-stage reminder emails before renewal dates — built around durable async workflows, JWT auth, and Arcjet security middleware."
+images:
+
+team:
+  - name: "Ashmit Patra"
+    role: "Backend Engineer"
+    avatar: "/images/avatar.jpg"
+    linkedIn: "https://www.linkedin.com/in/ashmit1116/"
+link: "https://github.com/ashmit1795/subscription-tracker"
+---
+
+## Overview
+
+Subee was built to solve a genuinely annoying problem: I kept forgetting about subscriptions until I'd already been charged.
+
+The concept is simple — you add your subscriptions, Subee tracks the renewal dates, and sends you a series of reminder emails before the charge hits. But building it turned into a much deeper lesson in asynchronous workflows, distributed scheduling, and what it actually means to make a backend system reliable under real-world conditions.
+
+The project is live at `https://subscription-tracker-sgrx.onrender.com` with full [Postman API documentation](https://documenter.getpostman.com/view/32382436/2sB34ikes3).
+
+---
+
+## What It Does
+
+- **Subscription Management** — Create, read, update, cancel, resume, and delete subscriptions with fields for name, price, currency, billing frequency (daily / weekly / monthly / yearly), category, payment method, and renewal date.
+- **Multi-Stage Reminder Emails** — Automated reminder emails sent at 7, 5, 2, and 1 days before the renewal date, each with a dynamically generated HTML template showing plan name, price, payment method, and days remaining.
+- **Automatic Renewal Tracking** — On the renewal day itself, the workflow updates the subscription's next renewal date and resets the reminder cycle automatically — no manual intervention needed.
+- **Upcoming Renewals Dashboard** — A dedicated endpoint returns all active subscriptions renewing within the next 30 days, sorted by renewal date.
+- **Secure Unsubscribe** — Each reminder email contains an unsubscribe link handled via a backend POST endpoint, preventing abuse and keeping the action server-side.
+- **JWT Authentication** — Access and refresh token pair protecting all user-facing routes, with role-based access control separating user and admin operations.
+- **Arcjet Security Layer** — Rate limiting, bot detection, and shield protection applied globally across all endpoints.
+
+---
+
+## Architecture
+
+The project follows a clean, modular MVC structure:
+
+```
+subscription-tracker/
+├── controllers/        # Business logic (auth, subscriptions, users, workflows)
+├── models/             # Mongoose schemas (User, Subscription)
+├── middlewares/        # Arcjet security, JWT authorization, error handling
+├── routes/             # Express routers for each resource
+├── config/             # Environment, Arcjet, Nodemailer, Upstash setup
+├── utils/              # ApiError, ApiResponse, email templates, date parsing, sendEmail
+├── db/                 # MongoDB connection
+├── app.js              # Express app setup with routes and global middleware
+└── index.js            # Server entry point
+```
+
+The `ApiResponse` and `ApiError` utility classes standardize every response and error shape across the entire API, making client integration predictable and debugging straightforward.
+
+---
+
+## Technical Decisions
+
+### The Core Problem: Reliable Future Scheduling
+
+The central engineering challenge was: **how do you reliably trigger something at a future date, potentially weeks away?**
+
+My first instinct was a cron job that runs every hour, checks for upcoming renewals, and sends emails. That works — until the server restarts, the job fails silently, or the timing drifts. A naive cron doesn't retry, doesn't log failures, and doesn't survive a process crash. It also has no concept of "per-subscription" state — every run scans the entire database.
+
+The solution was **Upstash QStash Workflows** (`@upstash/workflow`). When a subscription is created (or updated or resumed), the backend triggers a durable workflow via QStash. That workflow then:
+
+1. Fetches the subscription and checks it's still active.
+2. Iterates through the reminder schedule `[7, 5, 2, 1, 0]` days before renewal.
+3. For each reminder that's still in the future, calls `context.sleepUntil()` — suspending the workflow until that exact date.
+4. On waking, re-fetches the subscription from the database to check it's still active (in case it was cancelled during the sleep window).
+5. Sends the reminder email via Nodemailer.
+6. On the renewal day itself, advances the `renewalDate` by one billing cycle and resets the workflow.
+
+This means each subscription has its own isolated, stateful, durable process. If the server restarts, QStash resumes the workflow from where it left off. If the email send fails, retries are built in.
+
+The `workflowRunId` is stored on the subscription document in MongoDB. This makes it possible to cancel the workflow precisely when a subscription is cancelled, updated, or deleted — preventing phantom emails for stale subscriptions.
+
+### The Determinism Problem
+
+Upstash Workflows require deterministic step execution — meaning the same code must produce the same result each time a step is replayed. This ruled out calling `new Date()` directly inside the workflow body. Instead, current time is fetched inside a `context.run()` step, which caches its return value across replays:
+
+```js
+const getCurrentTime = async (context) => {
+  return await context.run("Get Current Time", async () => {
+    return new Date();
+  });
+};
+```
+
+After each `sleepUntil()`, time is re-fetched inside another step for the same reason. This pattern took some time to understand but is fundamental to how durable workflows maintain correctness.
+
+### Authentication: Access + Refresh Tokens
+
+Auth is handled with a dual-token strategy. On login, the server issues a short-lived JWT access token and a longer-lived refresh token stored in an `httpOnly` cookie. The `authorize.middleware.js` verifies the access token on protected routes and supports role-based checks (`admin` vs `user`), keeping admin-only controllers (like viewing all subscriptions or cancelling arbitrary workflows) out of reach for regular users.
+
+Passwords are hashed with `bcryptjs` before storage, and sensitive config is loaded from environment-specific `.env` files via `dotenv`.
+
+### Arcjet Security
+
+Every incoming request passes through Arcjet middleware before hitting any route. The configuration uses three rules simultaneously:
+
+- **Shield** — blocks common web attacks like SQL injection and XSS.
+- **Bot Detection** — rejects automated traffic except for explicitly allowlisted agents (Postman, Upstash QStash, search engine crawlers, and Render's health check agent).
+- **Token Bucket Rate Limiter** — refills 5 tokens every 10 seconds with a bucket capacity of 10, tracked per source IP.
+
+This combination meant I didn't have to hand-roll any of these protections, but I did have to carefully configure the bot allowlist — QStash needs to be permitted because it's the one calling the workflow endpoint.
+
+### Email: Nodemailer + Gmail SMTP
+
+**Nodemailer** with Gmail's SMTP service handles transactional email. Each reminder has its own dynamically generated HTML email containing the user's name, subscription details, renewal date, price with currency and frequency, payment method, and days remaining. The templates are defined in `emailTemplate.js` as an array of objects, each with a `label`, a `generateSubject()` function, and a `generateBody()` function — making it easy to match an incoming workflow step label to the correct template.
+
+Setting this up properly required understanding SPF records, Gmail App Passwords, and why emails land in spam. The `accountEmail` is exported from the Nodemailer config and used as the `from` field on every outbound message.
+
+### Date Parsing
+
+Renewal dates come in from clients in various formats. The `parseDate` utility uses `dayjs` with `customParseFormat`, `utc`, and `timezone` plugins, accepting six different date formats (`YYYY-MM-DD`, `DD/MM/YYYY`, `MM-DD-YYYY`, `MMM D, YYYY`, `DD-MM-YYYY`, ISO 8601) and normalizing them all to a UTC start-of-day ISO string. Invalid formats throw a 400 `ApiError` before anything reaches the database.
+
+---
+
+## Subscription Lifecycle
+
+```
+Create Subscription
+       │
+       ▼
+Workflow Triggered (QStash)
+       │
+       ├─ Sleep until 7 days before renewal → Send "7 days" reminder email
+       ├─ Sleep until 5 days before renewal → Send "5 days" reminder email
+       ├─ Sleep until 2 days before renewal → Send "2 days" reminder email
+       ├─ Sleep until 1 day before renewal  → Send "Final Reminder" email
+       └─ On renewal day → Advance renewalDate by 1 billing cycle → Restart workflow
+
+(At any point: Cancel/Update/Delete → Cancel existing workflow → Create new one if needed)
+```
+
+---
+
+## API Endpoints
+
+**Auth** (`/api/v1/auth`)
+- `POST /sign-up` — Register a new user
+- `POST /sign-in` — Log in, receive access + refresh tokens
+- `GET /sign-out` — Invalidate session
+
+**Subscriptions** (`/api/v1/subscriptions`)
+- `POST /` — Create a subscription (triggers workflow)
+- `GET /` — Get all subscriptions (admin only)
+- `GET /user` — Get current user's subscriptions
+- `GET /upcoming-renewals` — Renewals in the next 30 days
+- `GET /:id` — Get subscription by ID
+- `PUT /:id` — Update subscription (cancels + recreates workflow)
+- `DELETE /:id` — Delete subscription (admin only, cancels workflow)
+- `PATCH /:id/cancel` — Cancel subscription + workflow
+- `PATCH /:id/resume` — Resume a cancelled subscription (recreates workflow)
+- `POST /:id/unsubscribe` — Unsubscribe (sets status to inactive, cancels workflow)
+
+**Workflows** (`/api/v1/workflows`, admin only)
+- `POST /subscription/reminder` — QStash webhook endpoint (serves the durable workflow)
+- `GET /status/:workflowRunId` — Check status of a specific workflow run
+- `DELETE /cancel/:workflowRunId` — Cancel a specific workflow run
+- `DELETE /cancel-all` — Cancel all running workflows
+- `GET /list` — List all currently running workflow runs
+
+**Users** (`/api/v1/users`, admin only)
+- `GET /` — List all users
+- `GET /:id` — Get user by ID
+- `PATCH /:id` — Update user
+- `DELETE /:id` — Delete user
+
+---
+
+## What I Learned
+
+**Scheduling is deceptively hard.** "Send an email in 3 days" sounds trivial. Making it reliable, retryable, cancellable, and observable across server restarts is a real engineering problem. Upstash Workflows gave me the primitives to solve it, but understanding *why* those primitives exist — and the determinism constraints they impose — took real effort.
+
+**Not everything should happen in the request-response cycle.** When a subscription is created, the API responds immediately with the new document. The workflow is triggered asynchronously in the background. Separating these concerns made the API faster and the reminder logic independent of web server availability.
+
+**Workflow lifecycle management is state management.** Storing the `workflowRunId` on the subscription document and cancelling it precisely on cancel/update/delete/resume was the piece that made the system coherent. Without it, old workflows would keep firing even after a subscription was modified.
+
+**Security middleware compounds.** Running Arcjet's shield, bot detection, and rate limiting together at the app level meant every route inherited those protections automatically. Configuring the bot allowlist carefully (to permit QStash's own HTTP agent) was a non-obvious but critical step.
+
+---
+
+## Stack
+
+Node.js · Express · MongoDB · Mongoose · Upstash QStash Workflows · Nodemailer · Gmail SMTP · Arcjet · JWT · bcryptjs · dayjs · Render

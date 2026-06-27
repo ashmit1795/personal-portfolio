@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import { useState } from "react";
 import { Icon, IconButton, Row, Text } from "@once-ui-system/core";
 
@@ -76,7 +77,7 @@ export function CopyForAI() {
         variant="secondary"
         size="s"
         aria-hidden="true"
-        onClick={(e) => {
+        onClick={(e: React.MouseEvent) => {
           e.stopPropagation();
           handleCopy();
         }}

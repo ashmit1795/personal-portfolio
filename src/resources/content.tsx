@@ -1,10 +1,10 @@
-import { About, Blog, Gallery, Home, Newsletter, Person, Social, Work } from "@/types";
+import type { About, Blog, Gallery, Home, Newsletter, Person, Social, Work } from "@/types";
 import { Line, Row, Text } from "@once-ui-system/core";
 
 const person: Person = {
   firstName: "Ashmit",
   lastName: "Patra",
-  name: `Ashmit Patra`,
+  name: "Ashmit Patra",
   role: "Backend Engineer",
   avatar: "/images/avatar.jpg",
   email: "me@ashmitpatra.in",
@@ -57,7 +57,7 @@ const home: Home = {
   image: "/images/og/home.png",
   label: "Home",
   title: `${person.name} — Backend Engineer`,
-  description: `Portfolio of Ashmit Patra — backend engineer focused on building systems, DevOps, GenAI and learning in public.`,
+  description: "Portfolio of Ashmit Patra — backend engineer focused on building systems, DevOps, GenAI and learning in public.",
   headline: <>Building systems that work, understanding ones that don&apos;t</>,
   featured: {
     display: true,
@@ -130,18 +130,9 @@ const about: About = {
 				timeframe: "Aug 2025 – May 2026",
 				role: "Backend Developer Intern",
 				achievements: [
-					<>
-						Worked on production backend APIs and third-party integrations — my first real exposure to writing code that users actually
-						depend on, not just demo code.
-					</>,
-					<>
-						Built and maintained background job pipelines, AI-powered chatbot infrastructure, and large-scale data processing workflows
-						using AWS services.
-					</>,
-					<>
-						Learned that engineering is mostly about trade-offs — between performance and simplicity, speed and correctness, and what to
-						build now versus later.
-					</>,
+					"Worked on production backend APIs and third-party integrations — my first real exposure to writing code that users actually depend on, not just demo code.",
+					"Built and maintained background job pipelines, AI-powered chatbot infrastructure, and large-scale data processing workflows using AWS services.",
+					"Learned that engineering is mostly about trade-offs — between performance and simplicity, speed and correctness, and what to build now versus later.",
 				],
 				images: [],
 			},

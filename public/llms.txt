@@ -1,0 +1,62 @@
+# Ashmit Patra
+
+> Backend Engineer | CS Student at KIIT University, Bhubaneswar | Building systems, learning in public.
+
+Ashmit Patra is a backend engineer and CS student (B.Tech Computer Science Engineering, 2023–Present) at KIIT University, Bhubaneswar, India. He got into programming by wondering how things work under the hood — what happens after you click a button, where the data goes, how thousands of users hit the same app without it falling apart. Those questions pushed him toward backend engineering, DevOps, cloud infrastructure, and distributed systems. He is not trying to collect technologies — he is trying to understand fundamentals well enough to pick up any tool he needs.
+
+## Links
+
+- Portfolio: https://ashmitpatra.in
+- GitHub: https://github.com/ashmit1795
+- LinkedIn: https://www.linkedin.com/in/ashmit1116/
+- Blog (Hashnode): https://ashmitcodes.hashnode.dev/
+- Linktree: https://linktr.ee/ashmitpatra
+- Email: me@ashmitpatra.in
+- Book a call: https://cal.com/ashmit-patra
+- Resume: https://drive.google.com/file/d/1kY2MHlMd8jCTfx7_liU41uyhND60KYFE/view
+
+## Work Experience
+
+### Backend Developer Intern — Nurdd (Aug 2025 – May 2026)
+
+- Worked on production backend APIs and third-party integrations — first real exposure to writing code that users actually depend on, not just demo code.
+- Built and maintained background job pipelines, AI-powered chatbot infrastructure, and large-scale data processing workflows using AWS services.
+- Learned that engineering is mostly about trade-offs — between performance and simplicity, speed and correctness, and what to build now versus later.
+
+## Education
+
+### KIIT University, Bhubaneswar — B.Tech Computer Science Engineering (2023 – Present)
+
+Learning algorithms by day, building backend systems by night.
+
+## Technical Skills
+
+### Backend Engineering
+Designing and building REST APIs, authentication systems, authorization layers, background jobs, and scalable application architecture. Comfortable with the full request-response lifecycle and what happens outside of it.
+Technologies: Node.js, Express.js, TypeScript, JavaScript, REST APIs
+
+### Databases & Data Layer
+Working with both relational and document databases — schema design, indexing, transactions, and query optimization. ORM-comfortable but SQL-literate.
+Technologies: MongoDB, PostgreSQL, Prisma, Redis
+
+### Cloud & Infrastructure
+Deploying applications on Linux servers, setting up NGINX as a reverse proxy, managing processes with PM2, and working with AWS EC2. Currently going deep on Docker, CI/CD pipelines, and understanding production systems end-to-end.
+Technologies: Linux, AWS EC2, NGINX, Docker, Git
+
+### AI Engineering
+Exploring practical applications of LLMs and generative AI — less interested in the hype, more interested in what is actually useful in production. Has worked on AI-powered chatbot infrastructure during his internship.
+Technologies: GenAI, LLMs, AI SDKs
+
+## Projects
+
+See full project list at: https://ashmitpatra.in/work
+
+## Blog
+
+Engineering notes, debugging stories, and things Ashmit is figuring out — written from the perspective of someone learning, not teaching from a pedestal.
+Read at: https://ashmitpatra.in/blog (also cross-posted on Hashnode at https://ashmitcodes.hashnode.dev/)
+
+## Location & Languages
+
+- Location: Bhubaneswar, Odisha, India (Asia/Kolkata, UTC+5:30)
+- Languages: English, Hindi, Odia

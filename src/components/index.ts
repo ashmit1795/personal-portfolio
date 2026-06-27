@@ -11,3 +11,4 @@ export { CustomMDX } from "@/components/mdx";
 export { InteractiveAvatar } from "@/components/InteractiveAvatar";
 export { InteractiveHeading } from "@/components/InteractiveHeading";
 export { InteractivePing } from "@/components/InteractivePing";
+export { CopyForAI } from "@/components/CopyForAI";

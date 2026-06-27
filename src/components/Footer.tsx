@@ -34,7 +34,7 @@ export const Footer = () => {
           </Text>
           <Row gap="12" vertical="center" textVariant="body-default-xs" onBackground="neutral-weak">
             <Line background="neutral-alpha-medium" vert height="12" s={{ hide: true }} />
-            <Text>{person.location}</Text>
+            <Text>{person.city ?? person.location}</Text>
             <Line background="neutral-alpha-medium" vert height="12" />
             <InteractivePing />
           </Row>

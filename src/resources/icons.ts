@@ -1,4 +1,4 @@
-import { IconType } from "react-icons";
+import type { IconType } from "react-icons";
 
 import {
   HiArrowUpRight,
@@ -12,6 +12,9 @@ import {
   HiOutlineDocument,
   HiOutlineGlobeAsiaAustralia,
   HiOutlineRocketLaunch,
+  HiOutlineSparkles,
+  HiOutlineClipboardDocument,
+  HiCheck,
 } from "react-icons/hi2";
 
 import {
@@ -84,6 +87,9 @@ export const iconLibrary: Record<string, IconType> = {
   document: HiOutlineDocument,
   rocket: HiOutlineRocketLaunch,
   arrowUpRightFromSquare: HiArrowTopRightOnSquare,
+  sparkles: HiOutlineSparkles,
+  clipboardCopy: HiOutlineClipboardDocument,
+  check: HiCheck,
 
   // Social Platforms
   discord: FaDiscord,

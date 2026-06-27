@@ -120,6 +120,8 @@ export default async function RootLayout({
         />
         {/* humans.txt — credits for template, design system, and tooling */}
         <link rel="author" href="/humans.txt" />
+        {/* llms.txt — LLM-friendly profile, discoverable by AI agents */}
+        <link rel="alternate" type="text/plain" title="LLM Context" href="/llms.txt" />
       </head>
       <Providers>
         <Column

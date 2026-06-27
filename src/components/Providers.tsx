@@ -3,25 +3,32 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  BorderStyle,
-  ChartMode,
-  ChartVariant,
+  type BorderStyle,
+  type ChartMode,
+  type ChartVariant,
   DataThemeProvider,
   IconProvider,
   LayoutProvider,
-  NeutralColor,
-  ScalingSize,
-  Schemes,
-  SolidStyle,
-  SolidType,
-  SurfaceStyle,
+  type NeutralColor,
+  type ScalingSize,
+  type Schemes,
+  type SolidStyle,
+  type SolidType,
+  type SurfaceStyle,
   ThemeProvider,
   ToastProvider,
   useToast,
-  TransitionStyle,
+  type TransitionStyle,
 } from "@once-ui-system/core";
 import { style, dataStyle } from "../resources";
 import { iconLibrary } from "../resources/icons";
+
+interface CustomWindow extends Window {
+  help?: () => string;
+  secrets?: () => string;
+  stats?: () => string;
+  about?: () => string;
+}
 
 function ConsoleAndKonamiListener() {
   const { addToast } = useToast();
@@ -46,7 +53,8 @@ function ConsoleAndKonamiListener() {
 
     // 2. Expose window console commands
     if (typeof window !== "undefined") {
-      (window as any).help = () => {
+      const w = window as unknown as CustomWindow;
+      w.help = () => {
         console.log(
           "%c⚙️ Portfolio Terminal Diagnostics\n" +
           "-----------------------------------\n" +
@@ -59,7 +67,7 @@ function ConsoleAndKonamiListener() {
         return "Command completed.";
       };
 
-      (window as any).secrets = () => {
+      w.secrets = () => {
         console.log(
           "%c🔓 Secrets Registry & Riddles:\n" +
           "--------------------------------\n" +
@@ -73,7 +81,7 @@ function ConsoleAndKonamiListener() {
         return "Command completed.";
       };
 
-      (window as any).stats = () => {
+      w.stats = () => {
         console.log(
           "%c📊 System Status Diagnostics:\n" +
           "--------------------------------\n" +
@@ -89,7 +97,7 @@ function ConsoleAndKonamiListener() {
         return "Command completed.";
       };
 
-      (window as any).about = () => {
+      w.about = () => {
         console.log(
           "%c👨‍💻 Developer Profile:\n" +
           "--------------------\n" +
@@ -145,10 +153,11 @@ function ConsoleAndKonamiListener() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       if (typeof window !== "undefined") {
-        delete (window as any).help;
-        delete (window as any).secrets;
-        delete (window as any).stats;
-        delete (window as any).about;
+        const w = window as unknown as CustomWindow;
+        w.help = undefined;
+        w.secrets = undefined;
+        w.stats = undefined;
+        w.about = undefined;
       }
     };
   }, [addToast]);

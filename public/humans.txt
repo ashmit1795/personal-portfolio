@@ -1,0 +1,32 @@
+/* TEAM */
+Developer: Ashmit Patra
+Site:     https://ashmitpatra.in
+GitHub:   https://github.com/ashmit1795
+LinkedIn: https://www.linkedin.com/in/ashmit1116/
+Hashnode: https://ashmitcodes.hashnode.dev/
+Location: Bhubaneswar, India
+
+/* TEMPLATE */
+Name:     Magic Portfolio
+Creator:  Once UI
+URL:      https://once-ui.com/products/magic-portfolio
+GitHub:   https://github.com/once-ui-system/magic-portfolio
+License:  MIT License — Attribution required for free use
+
+/* DESIGN SYSTEM */
+Name:     Once UI
+URL:      https://once-ui.com
+Version:  Latest
+
+/* TECHNOLOGY */
+Framework:    Next.js 15 (App Router)
+Language:     TypeScript
+Styling:      Once UI + SCSS Modules
+Icons:        React Icons
+Fonts:        Geist (Vercel)
+Deployed on:  Vercel
+
+/* SITE */
+Last update:  2026/06
+Standards:    HTML5, CSS3
+Components:   React 19

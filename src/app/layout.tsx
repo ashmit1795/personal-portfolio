@@ -118,6 +118,8 @@ export default async function RootLayout({
             `,
           }}
         />
+        {/* humans.txt — credits for template, design system, and tooling */}
+        <link rel="author" href="/humans.txt" />
       </head>
       <Providers>
         <Column

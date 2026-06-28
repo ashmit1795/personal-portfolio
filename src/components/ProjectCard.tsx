@@ -23,6 +23,7 @@ interface ProjectCardProps {
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
   href,
+  priority = false,
   images = [],
   title,
   content,
@@ -33,6 +34,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   return (
     <Column fillWidth gap="m">
       <Carousel
+        aspectRatio="16 / 9"
+        priority={priority}
         sizes="(max-width: 960px) 100vw, 960px"
         items={images.map((image) => ({
           slide: image,

@@ -1,0 +1,349 @@
+---
+title: "From Building APIs to Building Production Systems — My Internship Journey at Nurdd"
+publishedAt: "2026-06-30"
+summary: "A reflection on my Backend Developer Internship at Nurdd, where I built scalable backend systems, AI workflows, queue architectures, and production-ready solutions."
+tag: "Journal"
+image: "/images/blogs/my-internship-experience-at-nurdd.png"
+---
+
+When I joined [Nurdd](https://nurdd.club/) as a Backend Developer Intern, I expected to write APIs, fix bugs, and contribute to backend features.
+
+What I didn't expect was being trusted with production systems that served thousands of users, processing hundreds of thousands of creator profiles, designing asynchronous architectures, improving AI systems, and learning what ownership truly means in software engineering.
+
+Looking back, this internship wasn't just another item on my résumé.
+
+It fundamentally changed the way I think about building software.
+
+---
+
+## About Nurdd
+
+Nurdd is an AI-powered marketing intelligence platform that helps brands make smarter creator marketing decisions.
+
+The platform enables businesses to discover creators, analyze influencer performance, measure AI search visibility, and understand marketing insights through large-scale data processing and AI-driven workflows.
+
+Behind every creator profile that users search lies an enormous amount of engineering.
+
+Data has to be collected from multiple platforms, enriched with analytics, processed through different services, stored efficiently, and finally served with low latency.
+
+During my internship, I had the opportunity to work on exactly these kinds of problems.
+
+---
+
+## Learning That Production Is Very Different From College Projects
+
+In university projects, we often think about making something work.
+
+In production, making something work is only the beginning.
+
+You also have to think about:
+
+* scalability
+* concurrency
+* failures
+* retries
+* latency
+* infrastructure cost
+* user experience
+* observability
+* reliability
+
+That mindset shift became one of the biggest lessons from my internship.
+
+---
+
+## Solving a 5-Minute Request Problem
+
+One of the first large engineering challenges I worked on involved creator profile generation.
+
+At first glance, it sounded simple.
+
+A user searches for a creator.
+
+The backend returns the profile.
+
+But behind that request, the platform needed to:
+
+* fetch creator information
+* collect hundreds of social media posts
+* retrieve engagement analytics
+* calculate fake follower metrics
+* aggregate insights from multiple external services
+* process and normalize the data
+
+If the creator already existed in our database, the response was almost instantaneous.
+
+But if it was a completely new creator, all of these operations had to happen before returning a response.
+
+That process could easily take five to six minutes.
+
+Clearly, keeping a user waiting for that long wasn't an option.
+
+---
+
+## Designing an Asynchronous Architecture
+
+Instead of blocking the request until all processing finished, I designed and implemented an asynchronous workflow using BullMQ and Redis.
+
+The request flow became much simpler:
+
+1. Check whether the creator already exists.
+2. If yes, return immediately.
+3. Otherwise, enqueue the request.
+4. Background workers process the creator independently.
+5. Notify waiting users once processing completes.
+
+The frontend remained responsive while the heavy lifting happened in the background.
+
+That single architectural decision dramatically improved the user experience.
+
+---
+
+## The Concurrency Problem Nobody Notices
+
+One interesting challenge appeared after implementing the queue.
+
+Imagine ten users searching for the same creator simultaneously.
+
+Without additional safeguards, the system would happily create ten identical jobs.
+
+That meant:
+
+* ten expensive API calls
+* duplicate processing
+* higher infrastructure costs
+* unnecessary load
+
+This is one of those production problems that rarely appears in classroom assignments but happens all the time in real systems.
+
+To solve it, I implemented a distributed locking mechanism using Redis.
+
+Only one background job could exist for a creator at any given time.
+
+Instead of creating duplicate jobs, subsequent requests were added to a Redis-backed waiter list.
+
+When processing finished, every waiting request received the completed result.
+
+The system became significantly more efficient while reducing duplicate work.
+
+---
+
+## Reliability Matters More Than Success
+
+Another lesson I learned was that production systems must expect failure.
+
+External APIs fail.
+
+Networks fail.
+
+Services timeout.
+
+Servers restart.
+
+Instead of assuming everything would succeed, I built the processing pipeline to recover automatically.
+
+The workflow included:
+
+* exponential retry backoff
+* automatic retries
+* safe job recovery
+* dead letter queues for persistent failures
+
+Rather than crashing silently, failed jobs could now be inspected, debugged, and replayed.
+
+Building for failure became just as important as building for success.
+
+---
+
+## Scaling YouTube Creator Processing
+
+Another major area I worked on involved YouTube creator ingestion.
+
+Using the YouTube Data API v3, I helped build pipelines responsible for:
+
+* fetching creator metadata
+* collecting analytics
+* enriching creator information
+* handling large-scale creator onboarding
+
+The architecture again relied on asynchronous processing rather than synchronous requests.
+
+As the platform continued growing, these queue-based workflows helped keep ingestion scalable while reducing request latency.
+
+---
+
+## Stepping Into AI Systems
+
+One of the most exciting opportunities during my internship came when I started working on Nurdd's AI chatbot, Nia.
+
+Initially, the chatbot relied on multiple sequential LLM calls.
+
+Each user message flowed through several separate stages:
+
+* content filtering
+* query rewriting
+* context resolution
+* intent classification
+* routing
+
+Although functional, every additional LLM call increased latency, token usage, orchestration complexity, and opportunities for hallucination.
+
+I wasn't originally hired as an AI engineer.
+
+In fact, most of my experience was with JavaScript rather than Python.
+
+But that's one thing I appreciated about Nurdd.
+
+Good ideas were welcomed regardless of who proposed them.
+
+I spent time learning the required Python ecosystem, understanding the OpenAI SDK, and mapping concepts from the JavaScript SDKs I had already worked with.
+
+Eventually, I redesigned the chatbot into a single-agent architecture using tool calling.
+
+Instead of multiple sequential LLM invocations, one central model could dynamically invoke tools whenever it needed additional information.
+
+These tools directly queried backend services and databases, giving the model access to fresh context without unnecessary inference steps.
+
+The improvements were immediately noticeable:
+
+* lower latency
+* fewer model calls
+* better context retention
+* improved conversational accuracy
+* simpler orchestration
+* lower token consumption
+
+It was one of the most rewarding engineering problems I worked on because it combined backend engineering with applied AI.
+
+---
+
+## Making Conversations More Natural
+
+Another exciting contribution involved adding voice capabilities.
+
+Using Groq Whisper APIs, I helped integrate speech-to-text functionality into the chatbot.
+
+Users could now interact using voice instead of typing, making conversations significantly more natural and accessible.
+
+Watching a system evolve from text-only interactions into multimodal conversations was incredibly satisfying.
+
+---
+
+## Ownership Is More Than Writing Code
+
+Perhaps the biggest lesson from this internship wasn't technical.
+
+It was learning what ownership actually means.
+
+Ownership meant asking:
+
+* What happens if this service fails?
+* How will this behave under load?
+* What happens if two users do the same thing simultaneously?
+* Can this architecture scale six months from now?
+* How do we debug this in production?
+
+I wasn't simply implementing assigned tasks.
+
+I was expected to think through the engineering decisions behind them.
+
+That responsibility accelerated my growth far more than simply writing more code ever could.
+
+---
+
+## The Team Made All the Difference
+
+No engineering journey happens alone.
+
+One of the reasons this internship became such a memorable experience was the people.
+
+The senior developers were incredibly supportive throughout my internship.
+
+They never hesitated to explain architectural decisions, review implementations, or challenge my assumptions in ways that helped me grow.
+
+As an intern, having experienced engineers who genuinely wanted you to learn made an enormous difference.
+
+The fellow interns created an equally enjoyable environment.
+
+We brainstormed ideas together, discussed approaches, helped each other debug difficult problems, and celebrated every small win.
+
+There were plenty of late-night meetings, production debugging sessions, architecture discussions, and moments where solving one issue uncovered three more.
+
+Those moments could have been stressful.
+
+Instead, they often became the most enjoyable part of the job because everyone approached them as a team.
+
+One thing I appreciated the most was that ideas were valued based on their merit rather than seniority.
+
+Even as an intern, I felt comfortable proposing architectural improvements, discussing trade-offs, and taking ownership of implementation decisions.
+
+That culture encouraged curiosity instead of hesitation.
+
+It's something I'll always be grateful for.
+
+---
+
+## Looking Back
+
+When I started this internship, I thought backend engineering was mostly about APIs and databases.
+
+Today, I see it very differently.
+
+Backend engineering is about designing systems that remain reliable under pressure.
+
+It's about making software resilient, scalable, observable, and maintainable.
+
+It's about solving problems users never even realize existed because the system simply works.
+
+Over the course of my internship, I had the opportunity to work with:
+
+* asynchronous job processing
+* distributed queues
+* Redis
+* BullMQ
+* concurrency control
+* third-party integrations
+* production debugging
+* YouTube Data APIs
+* reliability engineering
+* OpenAI tool-calling agents
+* AI chatbot architecture
+* voice interfaces
+* scalable backend systems
+
+More importantly, I learned how experienced engineers think when building production software.
+
+That lesson will stay with me far longer than any individual technology.
+
+To everyone at Nurdd—thank you for trusting me with real engineering problems, encouraging my ideas, and creating an environment where learning never stopped.
+
+This internship wasn't just where I wrote code.
+
+It was where I started thinking like a software engineer.
+
+## A Personal Note of Gratitude
+
+Before I wrap up, there's one person I especially want to thank.
+
+A huge part of this journey was possible because of **[Abhijeet Singh Kaushal](https://www.linkedin.com/in/abhijeet-singh-kaushal-408077132/) sir**, the founder of Nurdd.
+
+When I joined, I had built projects and understood backend development, but I had never worked on production-scale distributed systems. I had never experienced the realities of engineering problems that impact thousands of users or require balancing scalability, reliability, latency, and cost.
+
+Yet he trusted me with exactly those kinds of challenges.
+
+Instead of limiting interns to small bug fixes or isolated tasks, he gave me ownership. He encouraged me to think beyond implementation, question existing designs, propose better solutions, and learn by solving real problems. That level of trust is something I don't take for granted.
+
+Looking back, I also recognize that I wasn't perfect during my internship.
+
+There were days when I could have communicated better. There were occasions when I wasn't as disciplined or consistent as I should have been. Like many students balancing academics and other responsibilities, I sometimes struggled to give my absolute best every single day.
+
+Those moments are something I genuinely reflect on.
+
+One of the biggest lessons this internship taught me is that technical skills alone don't make a great engineer. Professionalism, accountability, consistency, communication, and ownership are equally important.
+
+I'm grateful that despite my shortcomings, I was given opportunities to learn, contribute, and grow. That trust came with responsibility, and it made me realize the kind of engineer—and teammate—I aspire to become.
+
+Every experience, including my mistakes, has helped shape my perspective. I leave this internship not only with stronger technical skills, but with a much clearer understanding of the professional standards I want to hold myself to throughout my career.
+
+For that, I'll always be thankful.
+

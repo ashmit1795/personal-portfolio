@@ -1,14 +1,14 @@
 ---
 title: "From Building APIs to Building Production Systems — My Internship Journey at Nurdd"
 publishedAt: "2026-06-30"
-summary: "A reflection on my Backend Developer Internship at Nurdd, where I built scalable backend systems, AI workflows, queue architectures, and production-ready solutions."
+summary: "A reflection on my Backend Developer Internship at Nurdd, where I built scalable backend systems, AI workflows, and production-ready solutions."
 tag: "Journal"
 image: "/images/blogs/my-internship-experience-at-nurdd.png"
 ---
 
 When I joined [Nurdd](https://nurdd.club/) as a Backend Developer Intern, I expected to write APIs, fix bugs, and contribute to backend features.
 
-What I didn't expect was being trusted with production systems that served thousands of users, processing hundreds of thousands of creator profiles, designing asynchronous architectures, improving AI systems, and learning what ownership truly means in software engineering.
+What I didn't expect was being trusted with production systems that served thousands of users, processing large volumes of creator data, designing scalable architectures, improving AI systems, and learning what ownership truly means in software engineering.
 
 Looking back, this internship wasn't just another item on my résumé.
 
@@ -24,7 +24,7 @@ The platform enables businesses to discover creators, analyze influencer perform
 
 Behind every creator profile that users search lies an enormous amount of engineering.
 
-Data has to be collected from multiple platforms, enriched with analytics, processed through different services, stored efficiently, and finally served with low latency.
+Data has to be collected from multiple sources, enriched with analytics, processed through different services, stored efficiently, and finally served with low latency.
 
 During my internship, I had the opportunity to work on exactly these kinds of problems.
 
@@ -52,7 +52,7 @@ That mindset shift became one of the biggest lessons from my internship.
 
 ---
 
-## Solving a 5-Minute Request Problem
+## Solving a Multi-Minute Request Problem
 
 One of the first large engineering challenges I worked on involved creator profile generation.
 
@@ -62,67 +62,46 @@ A user searches for a creator.
 
 The backend returns the profile.
 
-But behind that request, the platform needed to:
-
-* fetch creator information
-* collect hundreds of social media posts
-* retrieve engagement analytics
-* calculate fake follower metrics
-* aggregate insights from multiple external services
-* process and normalize the data
+But behind that request, the platform needed to fetch and aggregate data from several different sources, calculate analytics, and normalize everything into a usable format.
 
 If the creator already existed in our database, the response was almost instantaneous.
 
-But if it was a completely new creator, all of these operations had to happen before returning a response.
+But if it was a completely new creator, all of these operations had to happen before returning a response — and that process could take several minutes.
 
-That process could easily take five to six minutes.
-
-Clearly, keeping a user waiting for that long wasn't an option.
+Clearly, keeping a user waiting that long wasn't an option.
 
 ---
 
-## Designing an Asynchronous Architecture
+## Designing a More Responsive Architecture
 
-Instead of blocking the request until all processing finished, I designed and implemented an asynchronous workflow using BullMQ and Redis.
+Instead of blocking the request until all processing finished, I designed and implemented a background processing workflow that decoupled long-running operations from the user request lifecycle.
 
 The request flow became much simpler:
 
 1. Check whether the creator already exists.
 2. If yes, return immediately.
-3. Otherwise, enqueue the request.
-4. Background workers process the creator independently.
-5. Notify waiting users once processing completes.
+3. Otherwise, kick off processing in the background.
+4. Notify waiting users once it completes.
 
-The frontend remained responsive while the heavy lifting happened in the background.
+The frontend remained responsive while the heavy lifting happened behind the scenes.
 
-That single architectural decision dramatically improved the user experience.
+That single architectural decision dramatically improved the user experience. I won't go into the specific implementation details here, but it's the kind of problem that taught me a lot about designing for responsiveness at scale.
 
 ---
 
 ## The Concurrency Problem Nobody Notices
 
-One interesting challenge appeared after implementing the queue.
+One interesting challenge appeared once background processing was in place.
 
 Imagine ten users searching for the same creator simultaneously.
 
-Without additional safeguards, the system would happily create ten identical jobs.
+Without additional safeguards, the system would happily start ten identical jobs.
 
-That meant:
-
-* ten expensive API calls
-* duplicate processing
-* higher infrastructure costs
-* unnecessary load
+That meant duplicate processing, higher infrastructure costs, and unnecessary load.
 
 This is one of those production problems that rarely appears in classroom assignments but happens all the time in real systems.
 
-To solve it, I implemented a distributed locking mechanism using Redis.
-
-Only one background job could exist for a creator at any given time.
-
-Instead of creating duplicate jobs, subsequent requests were added to a Redis-backed waiter list.
-
-When processing finished, every waiting request received the completed result.
+To solve this, I implemented concurrency control mechanisms that ensured duplicate processing was avoided while still allowing multiple users to safely request the same resource. Only one job could exist for a given piece of work at any time, and everyone waiting on it received the result once it was ready.
 
 The system became significantly more efficient while reducing duplicate work.
 
@@ -132,22 +111,13 @@ The system became significantly more efficient while reducing duplicate work.
 
 Another lesson I learned was that production systems must expect failure.
 
-External APIs fail.
+External services fail.
 
 Networks fail.
 
-Services timeout.
-
 Servers restart.
 
-Instead of assuming everything would succeed, I built the processing pipeline to recover automatically.
-
-The workflow included:
-
-* exponential retry backoff
-* automatic retries
-* safe job recovery
-* dead letter queues for persistent failures
+Instead of assuming everything would succeed, I built the processing pipeline to recover automatically — safely retrying transient failures while isolating persistent ones for later investigation.
 
 Rather than crashing silently, failed jobs could now be inspected, debugged, and replayed.
 
@@ -155,63 +125,34 @@ Building for failure became just as important as building for success.
 
 ---
 
-## Scaling YouTube Creator Processing
+## Scaling Creator Data Ingestion
 
-Another major area I worked on involved YouTube creator ingestion.
+Another major area I worked on involved ingesting creator data from external platforms — fetching metadata, collecting analytics, enriching creator information, and handling large-scale onboarding.
 
-Using the YouTube Data API v3, I helped build pipelines responsible for:
-
-* fetching creator metadata
-* collecting analytics
-* enriching creator information
-* handling large-scale creator onboarding
-
-The architecture again relied on asynchronous processing rather than synchronous requests.
-
-As the platform continued growing, these queue-based workflows helped keep ingestion scalable while reducing request latency.
+The architecture again leaned on asynchronous processing rather than synchronous requests, which helped keep ingestion scalable while reducing request latency as the platform continued to grow.
 
 ---
 
 ## Stepping Into AI Systems
 
-One of the most exciting opportunities during my internship came when I started working on Nurdd's AI chatbot, Nia.
+One of the most exciting opportunities during my internship came when I started working on Nurdd's AI chatbot.
 
-Initially, the chatbot relied on multiple sequential LLM calls.
+Initially, the chatbot relied on multiple sequential steps for each user message — content filtering, query rewriting, context resolution, intent classification, and routing.
 
-Each user message flowed through several separate stages:
+Although functional, every additional step increased latency, resource usage, orchestration complexity, and opportunities for error.
 
-* content filtering
-* query rewriting
-* context resolution
-* intent classification
-* routing
+I wasn't originally hired to work on AI systems — most of my prior experience was elsewhere in the stack. But that's one thing I appreciated about Nurdd: good ideas were welcomed regardless of who proposed them.
 
-Although functional, every additional LLM call increased latency, token usage, orchestration complexity, and opportunities for hallucination.
-
-I wasn't originally hired as an AI engineer.
-
-In fact, most of my experience was with JavaScript rather than Python.
-
-But that's one thing I appreciated about Nurdd.
-
-Good ideas were welcomed regardless of who proposed them.
-
-I spent time learning the required Python ecosystem, understanding the OpenAI SDK, and mapping concepts from the JavaScript SDKs I had already worked with.
-
-Eventually, I redesigned the chatbot into a single-agent architecture using tool calling.
-
-Instead of multiple sequential LLM invocations, one central model could dynamically invoke tools whenever it needed additional information.
-
-These tools directly queried backend services and databases, giving the model access to fresh context without unnecessary inference steps.
+I spent time learning what I needed to and eventually redesigned the chatbot into a simpler, more unified architecture that could dynamically pull in additional information only when it was actually needed, instead of working through a long fixed chain of steps.
 
 The improvements were immediately noticeable:
 
 * lower latency
-* fewer model calls
+* fewer processing steps
 * better context retention
 * improved conversational accuracy
 * simpler orchestration
-* lower token consumption
+* lower resource consumption
 
 It was one of the most rewarding engineering problems I worked on because it combined backend engineering with applied AI.
 
@@ -219,13 +160,9 @@ It was one of the most rewarding engineering problems I worked on because it com
 
 ## Making Conversations More Natural
 
-Another exciting contribution involved adding voice capabilities.
+Another exciting contribution involved adding voice capabilities to the chatbot, so users could interact by speaking instead of typing.
 
-Using Groq Whisper APIs, I helped integrate speech-to-text functionality into the chatbot.
-
-Users could now interact using voice instead of typing, making conversations significantly more natural and accessible.
-
-Watching a system evolve from text-only interactions into multimodal conversations was incredibly satisfying.
+Watching a system evolve from text-only interactions into a richer, multimodal experience was incredibly satisfying.
 
 ---
 
@@ -295,21 +232,7 @@ It's about making software resilient, scalable, observable, and maintainable.
 
 It's about solving problems users never even realize existed because the system simply works.
 
-Over the course of my internship, I had the opportunity to work with:
-
-* asynchronous job processing
-* distributed queues
-* Redis
-* BullMQ
-* concurrency control
-* third-party integrations
-* production debugging
-* YouTube Data APIs
-* reliability engineering
-* OpenAI tool-calling agents
-* AI chatbot architecture
-* voice interfaces
-* scalable backend systems
+Over the course of my internship, I had the opportunity to work with asynchronous processing, concurrency control, third-party integrations, production debugging, reliability engineering, AI-driven chat systems, and voice interfaces.
 
 More importantly, I learned how experienced engineers think when building production software.
 
@@ -346,4 +269,3 @@ I'm grateful that despite my shortcomings, I was given opportunities to learn, c
 Every experience, including my mistakes, has helped shape my perspective. I leave this internship not only with stronger technical skills, but with a much clearer understanding of the professional standards I want to hold myself to throughout my career.
 
 For that, I'll always be thankful.
-
